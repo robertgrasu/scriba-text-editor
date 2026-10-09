@@ -1,0 +1,11 @@
+wait 500
+cmd sb_outline
+wait 200
+shot g-outline
+key Ctrl+R
+type add
+wait 100
+shot g-sym
+key Enter
+dump g1
+quit

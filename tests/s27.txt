@@ -1,0 +1,14 @@
+wait 400
+open %TESTS%\fixtures\t1.c
+open %TESTS%\fixtures\md1.md
+open %TESTS%\fixtures\t2.js
+cmd layout_cols
+wait 300
+shot d0
+drag 430,70,860,70
+wait 300
+shot d1
+drag 860,70,330,70
+wait 300
+shot d2
+quit

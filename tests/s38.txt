@@ -1,0 +1,25 @@
+wait 400
+cmd new_note
+type Poza:\n
+fmtimage %TESTS%\fixtures\Foto Test (1).png
+type dupa\n\ncod unu\ncod doi
+key Shift+Up
+key Shift+Home
+cmd fmt_codeblock
+key Ctrl+Home
+key Down
+key Down
+wait 200
+shot z1
+click 400,230
+wait 200
+shot z2
+click 397,179
+wait 200
+shot z3
+dump z3
+click 497,179
+wait 200
+shot z4
+dump z4
+quit

@@ -1,0 +1,25 @@
+wait 500
+setting lsp_servers={"JavaScript":{"command":"node","args":["%TESTS%/fixtures/fakelsp.js"]}}
+showsetting lsp_servers
+open %TESTS%\fixtures\lsp-test.js
+wait 3000
+shot q-diag
+move 330,133
+wait 1200
+shot q-hover
+cmd lsp_problems
+wait 300
+shot q-problems
+key Escape
+key Ctrl+End
+key Up
+key End
+key Ctrl+Space
+wait 600
+shot q-comp
+key Escape
+cmd lsp_references
+wait 500
+shot q-refs
+key Escape
+quit

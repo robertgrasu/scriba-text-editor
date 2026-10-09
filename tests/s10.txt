@@ -1,0 +1,26 @@
+wait 400
+open %TESTS%\fixtures\t2.js
+key Ctrl+End
+type \nfn
+key Tab
+type foo
+key Tab
+type a, b
+key Tab
+type return a;
+dump m1
+key Escape
+type \nfor
+key Tab
+type k
+key Tab
+type list
+dump m2
+key Ctrl+End
+key Ctrl+Q
+type // macro\n
+key Ctrl+Left
+key Ctrl+Q
+key Ctrl+Shift+Q
+dump m3
+quit

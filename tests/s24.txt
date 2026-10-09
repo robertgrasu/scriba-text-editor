@@ -1,0 +1,21 @@
+wait 400
+setting claude_path="%TESTS%/fixtures/cc/claude-stub.cmd"
+folder %TESTS%\fixtures\cc
+open %TESTS%\fixtures\cc\target.txt
+wait 300
+cmd claude_panel
+wait 500
+type /
+wait 300
+shot n1
+type mo
+wait 200
+shot n2
+key Escape
+type question plan please
+key Return
+wait 3000
+click 958,427
+wait 1500
+shot n3
+quit

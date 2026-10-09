@@ -1,0 +1,17 @@
+wait 400
+setting color_scheme="AMXX: Dark"
+wait 300
+open %TESTS%\fixtures\amx\colors.sma
+wait 1500
+shot colors
+open %TESTS%\fixtures\amx\strays.sma
+wait 1200
+shot strays
+cmd amxx_func_list
+wait 400
+shot funcs
+key Escape
+cmd amxx_tree
+wait 400
+key Escape
+quit

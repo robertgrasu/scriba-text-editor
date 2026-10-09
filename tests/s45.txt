@@ -1,0 +1,39 @@
+wait 400
+open %TESTS%\fixtures\ts\a.py
+wait 700
+key Ctrl+End
+type \ndef extra(a, b):\n    return a + b  # sum\n
+wait 200
+shot ts-typed
+key Up
+key Up
+key Home
+key Delete
+key Delete
+key Delete
+wait 200
+shot ts-deleted
+key Ctrl+Z
+key Ctrl+Z
+key Ctrl+Z
+wait 200
+shot ts-undone
+key Ctrl+Y
+key Ctrl+Y
+key Ctrl+Home
+key Down
+key Shift+Down
+key Shift+Down
+key Delete
+wait 200
+shot ts-lines
+open %TESTS%\fixtures\ts\g.cpp
+wait 500
+key Ctrl+End
+key Up
+type // tail
+key Ctrl+Home
+type /*
+wait 300
+shot ts-comment
+quit

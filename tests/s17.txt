@@ -1,0 +1,14 @@
+wait 500
+cmd new_note
+type First note\n
+cmd new_note
+type Second note\n
+click 125,72
+wait 400
+ctx 100,170,Red
+wait 200
+ctx 100,170,Pin
+wait 300
+shot n1
+log done
+quit

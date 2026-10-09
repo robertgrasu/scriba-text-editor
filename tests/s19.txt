@@ -1,0 +1,23 @@
+wait 500
+open %TESTS%\fixtures\t1.c
+wait 300
+key Ctrl+F
+type int
+wait 300
+shot f1
+key Ctrl+H
+type long
+wait 300
+shot f2
+key Escape
+key Ctrl+Home
+key Shift+Down
+key Shift+Down
+key Ctrl+F
+key Alt+S
+wait 300
+shot f3
+key Alt+Return
+wait 300
+shot f4
+quit

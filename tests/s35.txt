@@ -1,0 +1,20 @@
+wait 400
+cmd new_note
+type Salut\n- [ ] prima\na doua\n
+key Ctrl+Home
+key Down
+key Down
+key Home
+dump h1
+key Right
+dump h2
+key Right
+dump h3
+key Right
+key Right
+key Right
+key Right
+dump h4
+key Backspace
+dump h5
+quit

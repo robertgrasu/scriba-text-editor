@@ -1,0 +1,29 @@
+wait 800
+key Ctrl+G
+wait 200
+shot a-goto
+type 5
+key Enter
+dump d1
+key Ctrl+Shift+[
+dump d2
+shot a-fold
+key Ctrl+Shift+]
+key Ctrl+F2
+key End
+type  /* x */
+dump d3
+key Ctrl+T
+dump d4
+key Ctrl+Shift+Space
+key Ctrl+Shift+Space
+dump d5
+key Escape
+cmd transpose
+cmd fold_all
+dump d6
+shot a-foldall
+cmd unfold_all
+key Ctrl+Space
+shot a-comp
+quit

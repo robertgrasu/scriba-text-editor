@@ -1,0 +1,11 @@
+wait 400
+amxpick %TESTS%\fixtures\amx\hello.amxx
+cmd amxx_uncompress
+wait 800
+shot uncompressed
+key F7
+wait 800
+shot repacked
+cmd amxx_lysis_decompile
+wait 300
+quit

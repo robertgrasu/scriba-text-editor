@@ -1,0 +1,5 @@
+$b = "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools"
+$cm = "$b\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
+$nj = "$b\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe"
+$env:VSCMD_ARG_HOST_ARCH = "x64"
+cmd /c "`"$b\VC\Auxiliary\Build\vcvars64.bat`" >nul && cd /d `"$PSScriptRoot`" && `"$cm`" -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=`"$nj`" >nul && `"$cm`" --build build"

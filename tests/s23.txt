@@ -1,0 +1,27 @@
+wait 400
+setting claude_path="%TESTS%/fixtures/cc/claude-stub.cmd"
+folder %TESTS%\fixtures\cc
+open %TESTS%\fixtures\cc\target.txt
+wait 300
+cmd claude_panel
+wait 600
+click 1020,767
+wait 300
+shot m1
+click 1020,767
+click 1213,767
+wait 300
+shot m2
+click 1213,767
+click 1222,105
+wait 500
+shot m3
+click 1222,105
+click 1194,105
+wait 1500
+shot m4
+click 1194,105
+click 933,767
+wait 300
+shot m5
+quit

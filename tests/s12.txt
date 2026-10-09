@@ -1,0 +1,12 @@
+wait 400
+setting auto_save="after delay"
+setting auto_save_delay=1
+setting trim_trailing_white_space_on_save=true
+setting ensure_newline_at_eof_on_save=true
+open %TESTS%\fixtures\auto.txt
+key Ctrl+End
+type three   
+dump o1
+wait 3500
+dump o2
+quit

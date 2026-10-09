@@ -1,0 +1,13 @@
+wait 400
+setting claude_path="%TESTS%/fixtures/cc/claude-stub.cmd"
+folder %TESTS%\fixtures\cc
+open %TESTS%\fixtures\cc\target.txt
+wait 300
+cmd claude_panel
+wait 600
+type Please change hello
+key Return
+wait 3000
+shot k2
+log step
+quit

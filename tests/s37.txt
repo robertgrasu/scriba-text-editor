@@ -1,0 +1,16 @@
+wait 400
+cmd new_note
+type uno\ndoi\n\ncod\nmore
+cmd select_all
+cmd fmt_bold
+dump y1
+cmd fmt_bold
+dump y2
+cmd fmt_italic
+dump y3
+cmd fmt_italic
+cmd fmt_strike
+cmd fmt_code
+dump y4
+shot y4
+quit

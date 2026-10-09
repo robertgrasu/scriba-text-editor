@@ -1,0 +1,15 @@
+wait 400
+folder C:\Users\rober\Desktop\A\src
+open C:\Users\rober\Desktop\A\src\gitgutter.js
+open C:\Users\rober\Desktop\A\src\outline.js
+wait 400
+setting ui_style="Refined"
+wait 300
+shot u1
+setting ui_style="Modern"
+wait 300
+shot u2
+setting ui_style="Zen"
+wait 300
+shot u3
+quit

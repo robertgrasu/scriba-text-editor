@@ -1,0 +1,12 @@
+wait 400
+open C:\Users\rober\Desktop\A\src\outline.js
+setting ui_style="Zen"
+wait 300
+shot z1
+click 50,15
+wait 300
+shot z2
+click 95,15
+wait 300
+shot z3
+quit

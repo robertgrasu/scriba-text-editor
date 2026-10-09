@@ -1,0 +1,14 @@
+wait 500
+folder C:\Users\rober\Desktop\A\src
+cmd find_in_files
+type createChat
+key Enter
+wait 1500
+shot j-fif
+key Escape
+cmd run_command
+type echo hello & dir /b C:\Users\rober\Desktop\A\src\icons.js
+key Enter
+wait 1500
+shot j-run
+quit

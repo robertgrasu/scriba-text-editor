@@ -1,0 +1,15 @@
+wait 400
+cmd new_note
+type x **bold** y
+key Left
+key Left
+dump b1
+key Backspace
+dump b2
+key Backspace
+key Backspace
+key Backspace
+dump b3
+key Backspace
+dump b4
+quit

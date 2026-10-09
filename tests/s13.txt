@@ -1,0 +1,14 @@
+wait 600
+open %TESTS%\fixtures\amx\scripting\test.sma
+wait 1500
+shot p-pawn
+key Ctrl+End
+type \nregister_pl
+key Ctrl+Space
+wait 300
+shot p-comp
+key Escape
+cmd amxx_compile
+wait 2500
+shot p-build
+quit

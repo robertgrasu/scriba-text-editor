@@ -1,0 +1,17 @@
+wait 400
+open %TESTS%\fixtures\t2.js
+key Ctrl+W
+dump k1
+key Ctrl+Shift+T
+dump k2
+folder C:\Users\rober\Desktop\A\src
+addfolder C:\Users\rober\Desktop\A\docs
+cmd reveal_sidebar
+shot k-folders
+key Ctrl+Alt+R
+shot k-recent
+key Escape
+cmd goto_anything
+type shot
+shot k-goto
+quit

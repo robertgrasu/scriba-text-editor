@@ -1,0 +1,15 @@
+wait 600
+key Ctrl+,
+wait 300
+shot i-settings
+click 1100,430
+wait 200
+shot i-click
+type zzz
+wait 100
+key Escape
+cmd keybindings
+wait 300
+shot i-keys
+key Escape
+quit

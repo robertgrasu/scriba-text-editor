@@ -1,0 +1,40 @@
+wait 500
+# reindent the whole function
+cmd reindent
+dump f1
+# toggle block comment on line 5 (index 4)
+key Ctrl+G
+type 5
+key Enter
+key Ctrl+Shift+/
+dump f2
+key Ctrl+Shift+/
+dump f3
+# upper / lower / title case on a word
+key Ctrl+G
+type 9
+key Enter
+key Ctrl+Right
+key Ctrl+K Ctrl+U
+dump f4
+key Ctrl+K Ctrl+L
+dump f5
+cmd title
+dump f6
+# delete to end / beginning of line
+key Ctrl+Home
+key Ctrl+K Ctrl+K
+dump f7
+key End
+key Ctrl+K Ctrl+Backspace
+dump f8
+# wrap paragraph at 80 on the long comment (line 8)
+key Ctrl+G
+type 8
+key Enter
+key Alt+Q
+dump f9
+# sort lines (case insensitive) on selection of lines 2-4
+key Ctrl+Z
+key Ctrl+Z
+quit

@@ -1,0 +1,32 @@
+wait 500
+folder %TESTS%\fixtures\ctxproj
+open %TESTS%\fixtures\ctxproj\b.txt
+open %TESTS%\fixtures\ctxproj\hello.txt
+open %TESTS%\fixtures\ctxproj\renamed.txt
+wait 300
+ctx 480,70,Close Tabs to the Right
+wait 200
+shot d1
+ctx 340,70,Copy File Path
+cmd new_note
+wait 300
+type Note body\n
+ctx 520,70,Rename…
+wait 200
+key Ctrl+A
+type My note\n
+wait 300
+ctx 520,70,Pin to top
+shot d2
+key Ctrl+A
+ctx 600,300,Cut
+wait 200
+shot d3
+ctx 60,152,Find in Folder…
+wait 400
+shot d4
+ctx 60,130,Remove Folder from Project
+wait 200
+shot d5
+log done
+quit

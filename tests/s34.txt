@@ -1,0 +1,15 @@
+wait 400
+cmd new_note
+type Salut\n- [ ] prima\n- [x] a doua\n- [ ] a treia
+wait 300
+shot t0
+click 281,177
+click 281,201
+wait 200
+shot t1
+fmtimage C:\Users\rober\AppData\Local\Temp\claude\c--Users-rober-Desktop-A\7da8f292-c795-4084-8308-db127ce8b2ac\scratchpad\Foto Test (1).png
+wait 300
+type text dupa poza
+wait 300
+shot t2
+quit

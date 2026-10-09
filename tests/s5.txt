@@ -1,0 +1,11 @@
+wait 600
+shot h-nord
+cmd pick_scheme
+type tokyo
+wait 100
+shot h-pick
+key Enter
+wait 300
+shot h-tokyo
+dump h1
+quit

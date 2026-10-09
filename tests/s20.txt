@@ -1,0 +1,15 @@
+wait 500
+open %TESTS%\fixtures\t1.c
+key Ctrl+F
+wait 200
+move 800,795
+wait 900
+tipinfo
+shot tt1
+move 1262,70
+wait 900
+shot tt2
+move 330,70
+wait 900
+shot tt3
+quit

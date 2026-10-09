@@ -1,0 +1,5 @@
+wait 400
+folder C:\Users\rober\Desktop\A
+wait 300
+shot i1
+quit

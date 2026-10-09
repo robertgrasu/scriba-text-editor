@@ -1,0 +1,10 @@
+wait 400
+cmd new_note
+type Hello wrold this is a tesst of speling\n
+wait 400
+shot sp1
+ctx 360,134,world
+wait 200
+shot sp2
+log end
+quit

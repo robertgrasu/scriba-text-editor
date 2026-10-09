@@ -1,0 +1,33 @@
+wait 500
+cmd new_note
+type Shopping list #home #errands\nmilk\n
+cmd new_note
+type Work plan #work\nship the thing\n
+cmd new_note
+type Ideas for later (#home) maybe\n
+click 125,72
+wait 400
+ctx 100,215,Blue
+ctx 100,280,Pin to top
+wait 300
+shot m1
+pick Compact titles
+click 172,104
+wait 200
+shot m2
+pick Grouped by tag
+click 172,104
+wait 200
+shot m3
+pick Grouped by color
+click 172,104
+wait 200
+shot m4
+pick Title A–Z
+click 200,104
+wait 200
+click 100,215
+wait 300
+shot m5
+log done
+quit

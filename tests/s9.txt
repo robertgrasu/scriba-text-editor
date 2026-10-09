@@ -1,0 +1,10 @@
+wait 400
+log start
+open %TESTS%\fixtures\t2.js
+log opened
+cmd close_file
+log closed
+cmd reopen_closed
+log reopened
+dump k2
+quit

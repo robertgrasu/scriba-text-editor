@@ -1,0 +1,11 @@
+wait 400
+folder %TESTS%\fixtures\cc
+wait 600
+cmd claude_panel
+wait 800
+click 1222,106
+wait 400
+click 1100,165
+wait 1200
+shot hist
+quit

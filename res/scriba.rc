@@ -1,0 +1,5 @@
+1 ICON "scriba.ico"
+201 RCDATA "hud/de_dust2.png"
+202 RCDATA "hud/de_inferno.png"
+203 RCDATA "hud/hud.png"
+204 RCDATA "hud/dhud.png"

@@ -1,0 +1,8 @@
+wait 400
+type unsaved text
+modalshot mb1|Save changes to untitled?
+modal No
+cmd close_file
+wait 300
+log closed
+quit

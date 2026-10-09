@@ -1,0 +1,7 @@
+wait 400
+open %TESTS%\fixtures\md1.md
+wait 300
+cmd md_preview
+wait 500
+shot p1
+quit

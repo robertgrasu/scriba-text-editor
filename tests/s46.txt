@@ -1,0 +1,15 @@
+wait 400
+open C:\Users\rober\Desktop\ScribaCpp\src\main.cpp
+wait 3000
+shot big-top
+key Ctrl+End
+wait 300
+shot big-end
+key Ctrl+Home
+key PageDown
+key PageDown
+type x
+type y
+wait 300
+shot big-edit
+quit

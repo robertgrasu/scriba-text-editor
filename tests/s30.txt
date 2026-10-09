@@ -1,0 +1,12 @@
+wait 400
+cmd new_note
+type # Widgets\n\nText before\n\n
+type ![pic](%TESTS%/fixtures/readme-a.png)\n\n
+type | Name | Value |\n|---|---|\n| a | 1 |\n| bb | two **words** |\n\n
+type After the table\n
+wait 400
+shot w1
+key Ctrl+Home
+wait 200
+shot w2
+quit

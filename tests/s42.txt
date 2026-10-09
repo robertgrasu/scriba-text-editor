@@ -1,0 +1,17 @@
+wait 400
+cmd amxx_hud
+wait 500
+drag 800,211,700,400
+shot hud-drag
+click 238,658
+click 1140,99
+wait 450
+shot hud-play
+click 1245,99
+click 218,107
+click 1240,727
+click 1085,727
+wait 300
+shot hud-end
+key Escape
+quit

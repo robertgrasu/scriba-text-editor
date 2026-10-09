@@ -1,0 +1,27 @@
+wait 500
+key Ctrl+G
+type 7
+key Enter
+key End
+key Ctrl+Shift+Space
+dump e1
+key Ctrl+Shift+Space
+dump e2
+key Ctrl+Shift+Space
+dump e3
+key Ctrl+Shift+Space
+dump e4
+key Ctrl+Shift+Space
+dump e5
+cmd fold_all
+dump e6
+shot e-foldall
+key Ctrl+Home
+key Ctrl+Shift+M
+dump e7
+key Ctrl+G
+type 6
+key Enter
+key Ctrl+M
+dump e8
+quit

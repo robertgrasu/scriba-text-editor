@@ -1,0 +1,24 @@
+wait 400
+cmd new_note
+type Salut\n
+fmtimage C:\Users\rober\AppData\Local\Temp\claude\c--Users-rober-Desktop-A\7da8f292-c795-4084-8308-db127ce8b2ac\scratchpad\Foto Test (1).png
+type dupa poza
+key Up
+key Up
+wait 200
+shot i1
+click 400,230
+wait 200
+shot i2
+dump i2
+key Enter
+type sub poza
+wait 200
+shot i3
+key Up
+key Up
+key Backspace
+wait 200
+shot i4
+dump i4
+quit

@@ -1,0 +1,13 @@
+wait 400
+cmd new_note
+type * item unu\ndoi\n\n1. unu\ndoi\n\n- dash\n
+key Ctrl+Home
+key Down
+key Home
+dump l0
+key Right
+key Right
+dump l1
+key Backspace
+dump l2
+quit

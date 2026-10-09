@@ -1,0 +1,24 @@
+wait 500
+folder %TESTS%\fixtures\ctxproj
+open %TESTS%\fixtures\ctxproj\a.txt
+open %TESTS%\fixtures\ctxproj\b.txt
+wait 400
+shot c0
+ctx 100,120,New File…
+wait 200
+type hello.txt\n
+wait 500
+shot c1
+ctx 100,170,Rename…
+wait 200
+key Ctrl+A
+type renamed.txt\n
+wait 500
+shot c2
+ctx 300,15,Close Others
+wait 300
+shot c3
+key Ctrl+A
+ctx 400,200,Select All
+log done
+quit

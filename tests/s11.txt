@@ -1,0 +1,23 @@
+wait 400
+open C:\Users\rober\Desktop\A\src\icons.js
+folder C:\Users\rober\Desktop\A\src
+wait 600
+key Ctrl+End
+type \n// added line one\n// added line two
+key Ctrl+Home
+key Down
+key Down
+key Down
+key Ctrl+K Ctrl+K
+wait 1500
+shot n-git
+cmd git_next
+dump n1
+cmd git_diff
+wait 800
+shot n-diff
+key Ctrl+W
+cmd git_changed_files
+wait 300
+shot n-changed
+quit
