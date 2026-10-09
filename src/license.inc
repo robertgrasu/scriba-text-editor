@@ -16,7 +16,7 @@ struct LicInfo { int state = LS_NONE; wstring name, lic; long long exp = 0, unti
 static LicInfo g_lic;
 static std::string g_licKey, g_licToken, g_licMachine;
 static long long g_licSeen = 0, g_licLastTry = 0;
-static bool g_licOpen = false, g_licBusy = false, g_licBypass = false, g_licMsgErr = false;
+static bool g_licOpen = false, g_licBusy = false, g_licBypass = false, g_licMsgErr = false, g_licManual = false;
 static wstring g_licMsg;
 static LineEdit g_licEdit;
 static vector<D2D1_RECT_F> g_licRects;
@@ -174,6 +174,7 @@ static void licRequest(int op, const std::string& key) {
   redraw();
 }
 static void licOpen();
+static wstring licDate(long long t);
 static void licDone(LicResult* r) {
   g_licBusy = false;
   json j = json::parse(r->body, nullptr, false);
@@ -197,13 +198,20 @@ static void licDone(LicResult* r) {
       if (r->op == 1) { g_licKey = toUtf8(trimW(g_licEdit.t)); }
       licSave();
       if (r->op == 1) { g_licMsg = L"Activated. Thank you!"; g_licMsgErr = false; g_licOpen = false; g_licEdit.set(L""); }
-      else { g_licMsg.clear(); g_licMsgErr = false; if (g_licOpen && licLocked()) g_licOpen = false; }  // a new token: the editor opens again if it was locked
+      else {
+        if (g_licManual) { g_licMsg = L"Checked with the server: the license is valid."; g_licMsgErr = false; }
+        else { g_licMsg.clear(); g_licMsgErr = false; }
+        if (g_licOpen && licLocked()) g_licOpen = false;
+      }
+      g_licManual = false;  // a new token: the editor opens again if it was locked
     } else { g_licMsg = L"The answer of the server could not be verified."; g_licMsgErr = true; }
   } else if (r->status == 0) {  // no answer
+    if (g_licManual) { g_licMsg = L"Could not reach the license server. The license keeps working until " + licDate(g_lic.exp) + L"."; g_licMsgErr = true; g_licManual = false; }
     if (r->op == 1) { g_licMsg = L"Could not reach the license server (" + fromUtf8(licServer()) + L")."; g_licMsgErr = true; }
     // a refresh that does not get an answer changes nothing: the token it has keeps working until it runs out
   } else {  // the server said no: revoked, expired, not activated on this computer ...
     wstring m = isObj ? fromUtf8(j.value("message", "The license was refused.")) : L"The license was refused.";
+    g_licManual = false;
     g_licMsg = m;
     g_licMsgErr = true;
     if (r->op == 2) {
@@ -260,7 +268,7 @@ static void licTick() {
   if (g_licBypass) return;
   licRecheck();
   long long now = licNow();
-  if (g_lic.state == LS_OK && !g_licBusy && !g_licKey.empty() && g_lic.exp - now < 7 * 86400 && now - g_licLastTry > 1800) licRequest(2, g_licKey);
+  if (g_lic.state == LS_OK && !g_licBusy && !g_licKey.empty() && now - g_licLastTry > 900) licRequest(2, g_licKey);  // every 15 minutes: a revoked license stops working within that time
   if (g_lic.state == LS_OK && now > g_licSeen + 3600) { g_licSeen = now; licSave(); }
 }
 // commands that work while the editor is locked
@@ -335,7 +343,7 @@ static void drawLicense() {
   // buttons
   struct B { const wchar_t* l; int kind; bool show; };
   wstring buy = sStr("license_buy_url");
-  B bs[] = {{L"Buy a license", 3, !buy.empty()}, {L"Deactivate this computer", 4, ok}, {L"Close", 5, ok}, {L"Quit Scriba", 6, !ok}};
+  B bs[] = {{L"Buy a license", 3, !buy.empty()}, {L"Check now", 7, ok}, {L"Deactivate this computer", 4, ok}, {L"Close", 5, ok}, {L"Quit Scriba", 6, !ok}};
   float bx = x;
   for (auto& b : bs) {
     if (!b.show) continue;
@@ -364,6 +372,7 @@ static void licMouse(float x, float y, int what) {
         break;
       case 5: g_licOpen = false; break;
       case 6: PostMessageW(g_hwnd, WM_CLOSE, 0, 0); break;
+      case 7: if (!g_licBusy && !g_licKey.empty()) { g_licManual = true; g_licMsg = L"Checking with the server 26"; g_licMsgErr = false; licRequest(2, g_licKey); } break;
     }
     redraw();
     return;
