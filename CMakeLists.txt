@@ -14,6 +14,11 @@ endif()
 
 add_executable(Scriba WIN32 src/main.cpp res/scriba.rc)
 target_compile_definitions(Scriba PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+# the scripted tests run without a license; a build that is given to anybody must be made with -DSCRIBA_TEST_BYPASS=OFF
+option(SCRIBA_TEST_BYPASS "let the scripted tests skip the license" ON)
+if(SCRIBA_TEST_BYPASS)
+  target_compile_definitions(Scriba PRIVATE SCRIBA_TEST_BYPASS)
+endif()
 if(MSVC)
   target_compile_options(Scriba PRIVATE /utf-8 /W3 /O2 /bigobj)
 endif()

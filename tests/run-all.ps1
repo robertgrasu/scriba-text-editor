@@ -32,6 +32,19 @@ foreach ($s in $scripts) {
   Reset-Fixtures $s.BaseName
   $script = "$Out\$($s.BaseName).script"
   $text = [IO.File]::ReadAllText($s.FullName, [Text.Encoding]::UTF8).Replace('%TESTS%', $tests)
+  $licServer = $null
+  if ($s.BaseName -eq 's47') {  # the license page against a real license server (own database, port 5059)
+    $ls = "$PSScriptRoot\..\license_server"
+    $env:SCRIBA_LIC_DB = "$Out\lic-test.db"; $env:SCRIBA_LIC_PORT = '5059'
+    Remove-Item $env:SCRIBA_LIC_DB -ErrorAction SilentlyContinue
+    $py = (Get-Command python -ErrorAction SilentlyContinue).Source
+    if (-not $py) { $py = (Get-Command python3).Source }
+    $key = (& $py "$ls\manage.py" new --name 'Test User' --machines 1).Trim()
+    $licServer = Start-Process $py -ArgumentList "`"$ls\app.py`"" -PassThru -WindowStyle Hidden
+    Start-Sleep 2
+    $text = $text.Replace('%LICKEY%', $key)
+    $env:SCRIBA_LIC_REAL = '1'
+  }
   [IO.File]::WriteAllText($script, $text, (New-Object Text.UTF8Encoding $false))
   $data = "$Out\$($s.BaseName)\data"
   $shots = "$Out\$($s.BaseName)"
@@ -43,6 +56,12 @@ foreach ($s in $scripts) {
   $log = if (Test-Path "$shots\log.txt") { Get-Content "$shots\log.txt" } else { @() }
   $crash = Test-Path "$data\crash.txt"
   $bad = @($log | Where-Object { $_ -match 'unknown step|failed|no item' })
+  if ($licServer) {
+    Stop-Process $licServer -Force -ErrorAction SilentlyContinue
+    Get-NetTCPConnection -LocalPort 5059 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
+    Remove-Item Env:SCRIBA_LIC_REAL, Env:SCRIBA_LIC_DB, Env:SCRIBA_LIC_PORT -ErrorAction SilentlyContinue
+    foreach ($need in 'lic: state=0 locked=1', 'lic: state=1 locked=0') { if ($log -notcontains $need) { $bad += "missing: $need" } }
+  }
   $finished = $log -contains 'done'
   $ok = -not $timedOut -and -not $crash -and $bad.Count -eq 0 -and $finished
   if (-not $ok) { $failed++ }

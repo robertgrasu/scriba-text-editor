@@ -1469,7 +1469,9 @@ static bool doSaveAs(Doc& d) {
 static void flushNote(Doc& d);
 static void refreshNoteTitle(Doc& d);
 static wstring dataDir();
+static bool licLocked();  // license.inc
 static bool doSave(Doc& d) {
+  if (licLocked()) return false;
   if (d.isNote) { d.dirty = true; flushNote(d); return !d.dirty; }
   if (d.path.empty()) return doSaveAs(d);
   prepareForSave(d);
@@ -3879,6 +3881,7 @@ static bool fmtBarMouse(float x, float y) {
 #include "amxx_tools.inc"
 #include "hud_editor.inc"
 #include "amxx_unpack.inc"
+#include "license.inc"
 #include "lsp.inc"
 #include "claude_proc.inc"
 #include "claude_md.inc"
@@ -4746,6 +4749,7 @@ static void paint() {
   drawPalette();
   drawTabDrop();
   drawChromeTip();
+  drawLicense();
   drawModal();
   HRESULT hr = g_rt->EndDraw();
   if (hr == D2DERR_RECREATE_TARGET && g_rt == g_hrt) {
@@ -4877,6 +4881,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
       else if (wp == 11) chromeTipTimer();
       else if (wp == 12) ccTimer();
       else if (wp == 13) hudTick();
+      else if (wp == 14) licTick();
       else if (wp == 8) gitStatusRefresh();
       else if (wp == 9) testTick();
       return 0;
@@ -4910,6 +4915,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
       }
       Doc& d = D();
       int delta = GET_WHEEL_DELTA_WPARAM(wp);
+      if (g_licOpen) return 0;
       if (g_hudOpen && !g_palOpen) { hudWheel(delta, g_mx, g_my); return 0; }
       if (g_suOpen && !g_palOpen) { suWheel(delta); return 0; }
       tipHide();
@@ -4960,6 +4966,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
       float x = GET_X_LPARAM(lp) * g_dpiScale, y = GET_Y_LPARAM(lp) * g_dpiScale;
       if (g_modal.open) { modalMouse(x, y); return 0; }
       if (g_palOpen && palMouse(x, y)) return 0;
+      if (g_licOpen && y >= TITLE_H) { licMouse(x, y, 0); return 0; }
       if (g_hudOpen && y >= TITLE_H) { hudMouse(x, y, 0); return 0; }
       if (g_suOpen && y >= TITLE_H) { suMouse(x, y, 0); return 0; }
       tipHide();
@@ -5111,6 +5118,13 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
       return 0;
     case WM_MOUSEMOVE: {
       float x = GET_X_LPARAM(lp) * g_dpiScale, y = GET_Y_LPARAM(lp) * g_dpiScale;
+      if (g_licOpen) {
+        g_mx = x;
+        g_my = y;
+        redraw();
+        SetCursor(LoadCursor(nullptr, y >= TITLE_H ? IDC_ARROW : IDC_ARROW));
+        return 0;
+      }
       if (g_hudOpen) {
         g_mx = x;
         g_my = y;
@@ -5252,6 +5266,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     case WM_LSP_EXIT: lspExited((wstring*)lp); return 0;
     case WM_AMX_DOC: amxxDone((AmxResult*)lp); return 0;
     case WM_AMX_BUILD: amxBuildDone((AmxBuildResult*)lp); return 0;
+    case WM_LICENSE: licDone((LicResult*)lp); return 0;
     case WM_GIT_DOC: gitDocDone((GitDocResult*)lp); return 0;
     case WM_GIT_STATUS: gitStatusDone((GitStatusResult*)lp); return 0;
     case WM_FIF_DONE: fifDone((FifResult*)lp); return 0;
@@ -5349,6 +5364,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
   SetTimer(g_hwnd, 7, 250, nullptr);
   SetTimer(g_hwnd, 10, 100, nullptr);
   SetTimer(g_hwnd, 12, 120, nullptr);
+  SetTimer(g_hwnd, 14, 60000, nullptr);
   ccLoadStore();
   g_compExtra = [](Doc& dd, const wstring& pre, vector<CompItem>& out) { amxxCompletion(dd, pre, out); lspCompletionExtra(dd, pre, out); };
   SetTimer(g_hwnd, 8, 6000, nullptr);
@@ -5367,6 +5383,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
     SetWindowPos(g_hwnd, HWND_BOTTOM, -3000, 40, 1300, 840, SWP_NOACTIVATE | SWP_SHOWWINDOW);
   } else ShowWindow(g_hwnd, show);
   caretReset();
+  licInit();
   if (g_ccOpen && !g_testing) { g_ccOpen = false; ccShow(); }
   g_ccOpen = g_ccOpen && !g_testing;
   testStart();

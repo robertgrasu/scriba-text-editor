@@ -4,6 +4,7 @@
 // returns true when the key was handled
 static bool onKey(WPARAM wp, bool ctrl, bool shift, bool alt, bool sysKey) {
   if (g_modal.open) return modalKey(wp);
+  if (g_licOpen) return licKey(wp, ctrl, shift, alt);  // the license page owns the keyboard
   Doc& d = D();
   tipHide();
   chromeTipHide();
@@ -73,9 +74,10 @@ static bool onKey(WPARAM wp, bool ctrl, bool shift, bool alt, bool sysKey) {
 }
 static void onChar(wchar_t c) {
   if (g_modal.open) return;
-  if (c >= 32 && c != 127 && !g_palOpen && !g_suOpen && !g_hudOpen && !g_findFocus && !g_panelFocus && !g_nqFocus && !g_ccFocusInput && imageLineActive(D())) imageLineEscape(D());
+  if (c >= 32 && c != 127 && !g_palOpen && !g_suOpen && !g_hudOpen && !g_licOpen && !g_findFocus && !g_panelFocus && !g_nqFocus && !g_ccFocusInput && imageLineActive(D())) imageLineEscape(D());
   static wchar_t hi = 0;
   if (c < 32 || c == 127) return;
+  if (g_licOpen) { licChar(c); return; }
   if (g_palOpen) { palChar(c); return; }
   if (g_hudOpen) { hudChar(c); return; }
   if (g_suOpen) { suChar(c); return; }
@@ -241,6 +243,7 @@ static void testTick() {
     else if (op == L"tipinfo") testLog(L"tip: text=[" + g_ctipText + L"] shown=" + std::to_wstring(g_ctipShow) + L" mouse=" + std::to_wstring((int)g_mx) + L"," + std::to_wstring((int)g_my));
     else if (op == L"fmtimage") { g_testImagePick = arg; fmtImage(); g_testImagePick.clear(); }
     else if (op == L"amxpick") g_testAmxPick = arg;
+    else if (op == L"licstate") testLog(L"lic: state=" + std::to_wstring(g_lic.state) + L" locked=" + std::to_wstring(licLocked() ? 1 : 0));
     else if (op == L"tsall") { for (size_t i = 0; i < sizeof(TS_LANGS) / sizeof(TS_LANGS[0]); i++) tsLoad((int)i); testLog(L"ts: " + (g_tsLog.empty() ? wstring(L"all queries loaded") : g_tsLog)); }
     else if (op == L"pick") g_ctxTestPick = arg;  // the next popup menu (notes view buttons) chooses this item
     else if (op == L"modal") {  // modal Yes|No|Cancel|OK: the next message box is answered without being shown

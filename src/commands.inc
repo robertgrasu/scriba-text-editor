@@ -193,6 +193,7 @@
   X(AMXSTYLE, "amxx_style", L"AMX Mod X: Color Style\x2026", L"", 0) \
   X(AMXNEWPLUGIN, "amxx_new_plugin", L"AMX Mod X: New Plug-In", L"", 0) \
   X(AMXNEWINC, "amxx_new_include", L"AMX Mod X: New Include", L"", 0) \
+  X(LICENSE, "license", L"Help: License\x2026", L"", 0) \
   X(ABOUT, "about", L"Help: About", L"", 0) \
   X(TAB1, "tab_1", L"Goto: Tab 1", L"Alt+1", 2) \
   X(TAB2, "tab_2", L"Goto: Tab 2", L"Alt+2", 2) \
@@ -385,7 +386,7 @@ static void buildMenus() {
       {L"Git", {"git_changed_files", "git_diff", "-", "git_next", "git_prev", "git_revert"}},
       {L"Project", {"open_folder", "add_folder", "remove_folders", "refresh_folders", "-", "project_open", "project_save", "-", "reveal_sidebar", "find_in_files"}},
       {L"Preferences", {"settings", "keybindings", "-", "settings_json", "keybindings_json", "snippets_json", "-", "pick_scheme", "pick_ui"}},
-      {L"Help", {"about"}},
+      {L"Help", {"license", "about"}},
       {L"AMX Mod X", {"amxx_compile", "amxx_goto_def", "-", "amxx_func_list", "amxx_tree", "amxx_search_all", "-", "amxx_uncompress", "amxx_lysis_decompile", "-", "amxx_pick_profile", "amxx_pick_compiler", "amxx_style", "amxx_popup_style", "amxx_console_style", "-", "amxx_hud", "amxx_new_plugin", "amxx_new_include", "-", "amxx_close_panel"}},
   };
   g_menus.clear();

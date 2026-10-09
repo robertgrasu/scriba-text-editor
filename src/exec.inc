@@ -232,9 +232,13 @@ static bool handleKeymap(const KeyChord& c) {
   return false;
 }
 
+static bool licBlock(int cmd);
+static void licOpen();
 static void exec(int cmd) {
+  if (licBlock(cmd)) { flash(L"Activate your license first."); licOpen(); return; }  // nothing runs without a license
   Doc& d = D();
   switch (cmd) {
+    case C_LICENSE: licOpen(); break;
     case C_NEW: addDoc(new Doc()); break;
     case C_OPEN: {
       wchar_t buf[MAX_PATH * 40] = {};
