@@ -163,19 +163,47 @@ def resolve(rules, stack):
                 best[prop] = r[prop]; bscore[prop] = key
     return best
 
+
+def lumi(c):
+    f = lambda v: (v / 255.0 / 12.92) if v / 255.0 <= 0.03928 else (((v / 255.0) + 0.055) / 1.055) ** 2.4
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2])
+
+def contrast(a, b):
+    la, lb = lumi(a), lumi(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+def apart(c, ref, ratio):
+    """c moved darker (or, when it cannot get dark enough, lighter) until it can be told from ref"""
+    for target in ((0, 0, 0), (255, 255, 255)):
+        for i in range(21):
+            cc = mix(c, target, i / 20)
+            if contrast(cc, ref) >= ratio:
+                return cc
+    return c
+
+def readable(c, bg, fg, ratio):
+    """c moved toward the text colour until it reads on bg"""
+    for i in range(21):
+        cc = mix(c, fg, i / 20)
+        if contrast(cc, bg) >= ratio:
+            return cc
+    return fg
+
 def main():
     files = sorted(glob.glob(os.path.join(SRC, '*.sublime-color-scheme')))
     rows, pals, names = [], [], []
     def emit(name, bg, fg, caret, sel, cols, sts, invbg):
         dark = lum(bg) < 0.5
-        win = mix(bg, (0, 0, 0), 0.25) if dark else mix(bg, (0, 0, 0), 0.07)
+        win = apart(mix(bg, (0, 0, 0), 0.3), bg, 1.3) if dark else mix(bg, (0, 0, 0), 0.07)
+        tabbar = apart(mix(bg, (0, 0, 0), 0.4), bg, 1.45) if dark else mix(bg, (0, 0, 0), 0.12)
+        tabtext = readable(mix(bg, fg, 0.72), tabbar, fg, 5.5)
         accent = cols['FNCALL']
         sidebar = mix(bg, win, .6)
         menu = mix(bg, win, .5)
         black, white = (0, 0, 0), (255, 255, 255)
         T = [
             win, bg, mix(bg, fg, .5), mix(bg, fg, .82), fg, win, fg, mix(win, fg, .1), menu, mix(menu, fg, .13), mix(menu, fg, .1),
-            mix(bg, fg, .2) if dark else mix(bg, black, .12), mix(bg, fg, .72), fg, win, mix(bg, fg, .62), caret, sel,
+            tabbar, tabtext, fg, win, mix(bg, fg, .62), caret, sel,
             mix(bg, win, .5), mix(bg, fg, .12), mix(win, black, .25) if dark else mix(bg, white, .7), mix(win, black, .45) if dark else mix(bg, black, .2),
             accent, sidebar, mix(bg, fg, .74), mix(sidebar, fg, .1), mix(bg, fg, .5), mix(bg, fg, .25), mix(bg, fg, .4), mix(bg, fg, .22),
             accent, mix(bg, fg, .14), mix(bg, fg, .24), mix(bg, fg, .35), mix(bg, fg, .5),

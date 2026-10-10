@@ -3899,16 +3899,26 @@ static bool vpIsFocusedPane();
 
 /* ---------------------------------------------------------------- layout helpers */
 struct TabRect { float x, w; int idx; };
+// the tab bar scrolls: one offset per group (the mouse wheel moves it, a new active tab is brought into view)
+static float g_tabOff[2] = {0, 0};
+static float tabViewL() { return L0() + 52; }                // after the two arrows
+static float tabViewR() { return g_vp.right - 56; }          // before the new tab and tab list buttons
+static float tabWidthOf(const Doc* d) { return std::min(320.f, std::max(90.f, textWidth(d->name, g_ui) + 56 + (d->isNote ? 20.f : 0.f))); }
 static vector<TabRect> tabRects(int grp) {
   vector<TabRect> r;
-  float x = L0() + 52;  // after the two scroll arrows
+  vector<std::pair<int, float>> ws;
+  float total = 0;
   for (size_t i = 0; i < g_docs.size(); i++) {
-    Doc* d = g_docs[i];
-    if (d->group != grp) continue;
-    float w = std::min(320.f, std::max(90.f, textWidth(d->name, g_ui) + 56 + (d->isNote ? 20.f : 0.f)));
-    r.push_back({x, w, (int)i});
-    x += w + 1;
+    if (g_docs[i]->group != grp) continue;
+    float w = tabWidthOf(g_docs[i]);
+    ws.push_back({(int)i, w});
+    total += w + 1;
   }
+  float viewW = std::max(40.f, tabViewR() - tabViewL());
+  float& off = g_tabOff[std::min(grp, 1)];
+  off = std::max(0.f, std::min(off, std::max(0.f, total - viewW)));
+  float x = tabViewL() - off;
+  for (auto& p : ws) { r.push_back({x, p.second, p.first}); x += p.second + 1; }
   return r;
 }
 // bottom status bar: the sidebar icon and the position on the left, then the clickable settings on the right
@@ -4479,7 +4489,25 @@ static void paint() {
   if (TAB_H > 0.5f) {
   fillRect(g_vp.left, g_vp.top, g_vp.right - g_vp.left, TAB_H, styTabBar());
   if (g_uiStyle == 1 || g_uiStyle == 3) fillRect(g_vp.left, g_vp.top + TAB_H - 1, g_vp.right - g_vp.left, 1, t.fg, 0.1f);
+  static int lastAct[2] = {-2, -2};
+  static size_t lastN[2] = {0, 0};
   auto tr = tabRects(grp);
+  {
+    int g2 = std::min(grp, 1);
+    bool changed = g_active != lastAct[g2] || g_docs.size() != lastN[g2];
+    lastAct[g2] = g_active;
+    lastN[g2] = g_docs.size();
+    if (changed)
+      for (auto& r : tr)
+        if (r.idx == g_active) {
+          float L = tabViewL(), R = tabViewR();
+          if (r.x < L) g_tabOff[g2] -= (L - r.x) + 14;
+          else if (r.x + r.w > R) g_tabOff[g2] += (r.x + r.w - R) + 14;
+          tr = tabRects(grp);
+          break;
+        }
+  }
+  g_rt->PushAxisAlignedClip(D2D1::RectF(tabViewL() - 2, g_vp.top, tabViewR() + 2, g_vp.top + TAB_H), D2D1_ANTIALIAS_MODE_ALIASED);
   static const float TG_Y[4] = {3, 4, 8, 5}, TG_H[4] = {31, 32, 30, 30};
   const float gy0 = g_vp.top + TG_Y[g_uiStyle], gth = TG_H[g_uiStyle];
   for (size_t k = 0; k < tr.size(); k++) {
@@ -4504,6 +4532,7 @@ static void paint() {
       if (act) fillR(rc(x, y0, w, th), t.fg, 0.11f, 8);
       else if (hovT) fillR(rc(x, y0, w, th), t.fg, 0.07f, 8);
     }
+    if (act && (g_uiStyle == 0 || g_uiStyle == 1)) fillR(rc(x + 8, y0, w - 16, 2), t.accent, 0.95f, 1);  // the selected tab has a line of the accent colour on top
     g_rt->PopAxisAlignedClip();
     float tx0 = x + 14;
     if (g_docs[i]->isNote) {  // the N badge of a note tab
@@ -4526,6 +4555,7 @@ static void paint() {
       g_rt->DrawLine(D2D1::Point2F(cx - 3.5f, cy + 3.5f), D2D1::Point2F(cx + 3.5f, cy - 3.5f), g_br, 1.3f);
     }
   }
+  g_rt->PopAxisAlignedClip();
   {  // tab bar buttons: scroll arrows on the left, new tab and the tab list on the right
     DWORD bc2 = mixc(styTabBar(), t.tabText, 0.85f);
     {  // hover feedback on the four buttons
@@ -4917,6 +4947,19 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
       Doc& d = D();
       int delta = GET_WHEEL_DELTA_WPARAM(wp);
       if (g_licOpen) return 0;
+      if (!g_palOpen && !g_suOpen && !g_hudOpen) {  // over a tab bar: the tabs scroll sideways
+        POINT pt{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+        ScreenToClient(h, &pt);
+        float mxp = pt.x * g_dpiScale, myp = pt.y * g_dpiScale;
+        for (int gi = 0; gi < paneCount(); gi++) {
+          const VP& p = g_paneRect[gi];
+          if (myp >= p.top && myp < p.top + TAB_H && mxp >= p.left && mxp < p.right) {
+            g_tabOff[std::min(gi, 1)] -= delta / 120.f * 110.f;
+            redraw();
+            return 0;
+          }
+        }
+      }
       if (g_hudOpen && !g_palOpen) { hudWheel(delta, g_mx, g_my); return 0; }
       if (g_suOpen && !g_palOpen) { suWheel(delta); return 0; }
       tipHide();
