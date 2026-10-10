@@ -4574,27 +4574,14 @@ static void paint() {
   if (g_uiStyle == 1 && MENU_H > TITLE_H) fillRect(0, MENU_H - 1, W, 1, t.fg, 0.1f);
   {
     // title bar: app icon, title, window buttons (the native frame is removed)
-    D2D1_RECT_F ir = rc(10, 7, 16, 16);
-    g_br->SetColor(Rgb(0x14b8a6));
-    g_rt->FillRoundedRectangle(D2D1::RoundedRect(ir, 3.6f, 3.6f), g_br);
-    g_br->SetColor(Rgb(0x3b82f6, 0.55f));
-    g_rt->FillRoundedRectangle(D2D1::RoundedRect(rc(18, 7, 8, 16), 3.f, 3.f), g_br);
-    g_br->SetColor(Rgb(0xffffff));
-    ID2D1PathGeometry* pg = nullptr;
-    g_d2d->CreatePathGeometry(&pg);
-    if (pg) {
-      ID2D1GeometrySink* sk = nullptr;
-      pg->Open(&sk);
-      sk->BeginFigure(D2D1::Point2F(18, 9.6f), D2D1_FIGURE_BEGIN_FILLED);
-      sk->AddLine(D2D1::Point2F(21.3f, 14.3f));
-      sk->AddLine(D2D1::Point2F(18, 20.6f));
-      sk->AddLine(D2D1::Point2F(14.7f, 14.3f));
-      sk->EndFigure(D2D1_FIGURE_END_CLOSED);
-      sk->Close();
-      sk->Release();
-      g_rt->FillGeometry(pg, g_br);
-      pg->Release();
-    }
+    // the logo (4-caret-lines of the Scriba logos): a dark tile, three lines of text and a caret, drawn on a 16 x 16 grid
+    auto lg = [&](float x, float y, float w, float h, float r, DWORD c) { fillR(rc(10 + x, 7 + y, w, h), c, 1.f, r); };
+    lg(0, 0, 16, 16, 3.6f, 0x1e293b);
+    strokeR(rc(10.5f, 7.5f, 15, 15), 0x64748b, 0.45f, 3.3f);
+    lg(3, 3.9f, 9.6f, 1.5f, .75f, 0x64748b);
+    lg(3, 7.2f, 6.4f, 1.5f, .75f, 0x94a3b8);
+    lg(3, 10.5f, 7.6f, 1.5f, .75f, 0x64748b);
+    lg(11.8f, 9.5f, 1.3f, 3.5f, .65f, 0x2dd4bf);
     wstring ttl = d.name;
     if (g_root && !d.isNote) ttl += L" (" + g_root->name + L")";
     ttl += L" - Scriba";
