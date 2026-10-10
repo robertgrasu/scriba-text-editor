@@ -166,6 +166,36 @@ def resolve(rules, stack):
 def main():
     files = sorted(glob.glob(os.path.join(SRC, '*.sublime-color-scheme')))
     rows, pals, names = [], [], []
+    def emit(name, bg, fg, caret, sel, cols, sts, invbg):
+        dark = lum(bg) < 0.5
+        win = mix(bg, (0, 0, 0), 0.25) if dark else mix(bg, (0, 0, 0), 0.07)
+        accent = cols['FNCALL']
+        sidebar = mix(bg, win, .6)
+        menu = mix(bg, win, .5)
+        black, white = (0, 0, 0), (255, 255, 255)
+        T = [
+            win, bg, mix(bg, fg, .5), mix(bg, fg, .82), fg, win, fg, mix(win, fg, .1), menu, mix(menu, fg, .13), mix(menu, fg, .1),
+            mix(bg, fg, .2) if dark else mix(bg, black, .12), mix(bg, fg, .72), fg, win, mix(bg, fg, .62), caret, sel,
+            mix(bg, win, .5), mix(bg, fg, .12), mix(win, black, .25) if dark else mix(bg, white, .7), mix(win, black, .45) if dark else mix(bg, black, .2),
+            accent, sidebar, mix(bg, fg, .74), mix(sidebar, fg, .1), mix(bg, fg, .5), mix(bg, fg, .25), mix(bg, fg, .4), mix(bg, fg, .22),
+            accent, mix(bg, fg, .14), mix(bg, fg, .24), mix(bg, fg, .35), mix(bg, fg, .5),
+        ]
+        syn = [fg, cols['CONTROL'], cols[2], cols[3], cols[4], cols['FNCALL'], cols['VARTYPE'], cols['TAG'], cols['FNDEF'], cols['CONSTVAR'], cols['OP'], cols['FNCALL'], cols['INVALID']]
+        names.append(name)
+        row = '    {L"%s", %s, %s,\n     {%s}},\n' % (
+            name, 'true' if dark else 'false', ', '.join(hexs(c) for c in T), ', '.join(hexs(c) for c in syn))
+        rows.append(row)
+        order = [0, 2, 3, 4] + KINDS
+        # col[AK_N] indexed by kind number: 0 default,1 unused,2 str,3 num,4 comment,5..12 unused,13.. AK
+        arr = [None] * 33
+        sarr = [0] * 33
+        for k in range(13): arr[k] = fg
+        arr[0] = fg; arr[2] = cols[2]; arr[3] = cols[3]; arr[4] = cols[4]
+        sarr[2], sarr[3], sarr[4] = sts[2], sts[3], sts[4]
+        for i, k in enumerate(KINDS):
+            arr[13 + i] = cols[k]; sarr[13 + i] = sts[k]
+        pals.append('    {{%s}, {%s}, %s},  // %s\n' % (', '.join(hexs(c) for c in arr), ', '.join(str(x) for x in sarr), hexs(invbg) if invbg else '0xffffffff', name))
+
     for pi, f in enumerate(files):
         base = os.path.basename(f).replace('.pawn-editor.sublime-color-scheme', '')
         sc = load(f)
@@ -194,35 +224,47 @@ def main():
             if key == 'INVALID':
                 b = parse_color(r['background'], vars_)
                 invbg = blend(b, bg) if b else None
-        dark = lum(bg) < 0.5
-        win = mix(bg, (0, 0, 0), 0.25) if dark else mix(bg, (0, 0, 0), 0.07)
-        accent = cols['FNCALL']
-        sidebar = mix(bg, win, .6)
-        menu = mix(bg, win, .5)
-        black, white = (0, 0, 0), (255, 255, 255)
-        T = [
-            win, bg, mix(bg, fg, .5), mix(bg, fg, .82), fg, win, fg, mix(win, fg, .1), menu, mix(menu, fg, .13), mix(menu, fg, .1),
-            mix(bg, fg, .2) if dark else mix(bg, black, .12), mix(bg, fg, .72), fg, win, mix(bg, fg, .62), caret, sel,
-            mix(bg, win, .5), mix(bg, fg, .12), mix(win, black, .25) if dark else mix(bg, white, .7), mix(win, black, .45) if dark else mix(bg, black, .2),
-            accent, sidebar, mix(bg, fg, .74), mix(sidebar, fg, .1), mix(bg, fg, .5), mix(bg, fg, .25), mix(bg, fg, .4), mix(bg, fg, .22),
-            accent, mix(bg, fg, .14), mix(bg, fg, .24), mix(bg, fg, .35), mix(bg, fg, .5),
-        ]
-        syn = [fg, cols['CONTROL'], cols[2], cols[3], cols[4], cols['FNCALL'], cols['VARTYPE'], cols['TAG'], cols['FNDEF'], cols['CONSTVAR'], cols['OP'], cols['FNCALL'], cols['INVALID']]
-        name = 'AMXX: ' + base.replace('(mirage)', 'Mirage')
-        names.append(name)
-        row = '    {L"%s", %s, %s,\n     {%s}},\n' % (
-            name, 'true' if dark else 'false', ', '.join(hexs(c) for c in T), ', '.join(hexs(c) for c in syn))
-        rows.append(row)
-        order = [0, 2, 3, 4] + KINDS
-        # col[AK_N] indexed by kind number: 0 default,1 unused,2 str,3 num,4 comment,5..12 unused,13.. AK
-        arr = [None] * 33
-        sarr = [0] * 33
-        for k in range(13): arr[k] = fg
-        arr[0] = fg; arr[2] = cols[2]; arr[3] = cols[3]; arr[4] = cols[4]
-        sarr[2], sarr[3], sarr[4] = sts[2], sts[3], sts[4]
-        for i, k in enumerate(KINDS):
-            arr[13 + i] = cols[k]; sarr[13 + i] = sts[k]
-        pals.append('    {{%s}, {%s}, %s},  // %s\n' % (', '.join(hexs(c) for c in arr), ', '.join(str(x) for x in sarr), hexs(invbg) if invbg else '0xffffffff', name))
+        emit('AMXX: ' + base.replace('(mirage)', 'Mirage'), bg, fg, caret, sel, cols, sts, invbg)
+        if base == 'Dark': dark = (bg, fg, caret, sel, cols, sts, invbg)
+
+    # ---- variants of the AMXX Dark scheme: other backgrounds and softer or stronger colours, every colour kept readable on its background
+    import colorsys
+    def lumi(c):
+        f = lambda v: (v / 255.0 / 12.92) if v / 255.0 <= 0.03928 else (((v / 255.0) + 0.055) / 1.055) ** 2.4
+        return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2])
+    def contrast(a, b):
+        la, lb = lumi(a), lumi(b)
+        hi, lo = max(la, lb), min(la, lb)
+        return (hi + 0.05) / (lo + 0.05)
+    def tune(c, bg, sat=1.0, dl=0.0, need=4.2):
+        h, l, sa = colorsys.rgb_to_hls(c[0] / 255, c[1] / 255, c[2] / 255)
+        sa = min(1.0, sa * sat)
+        l = min(0.95, max(0.05, l + dl))
+        def rgb(l):
+            r, g, b = colorsys.hls_to_rgb(h, l, sa)
+            return (round(r * 255), round(g * 255), round(b * 255))
+        out = rgb(l)
+        while contrast(out, bg) < need and l < 0.95:
+            l += 0.02
+            out = rgb(l)
+        return out
+    dbg, dfg, dcaret, dsel, dcols, dsts, dinv = dark
+    VARIANTS = [
+        # name, background, text, saturation of the colours, lightness added
+        ('Dark Soft', (0x1b, 0x1c, 0x1f), (0xc9, 0xcc, 0xd1), 0.72, 0.04),
+        ('Dark Black', (0x00, 0x00, 0x00), (0xe6, 0xe6, 0xe6), 1.1, 0.06),
+        ('Dark Ocean', (0x0b, 0x12, 0x20), (0xcb, 0xd5, 0xe1), 0.95, 0.03),
+        ('Dark Warm', (0x17, 0x12, 0x0e), (0xd6, 0xcc, 0xc2), 0.9, 0.03),
+        ('Dark Green', (0x0a, 0x13, 0x0c), (0xc5, 0xd6, 0xc5), 0.9, 0.03),
+        ('Dark Slate', (0x1e, 0x29, 0x3b), (0xcb, 0xd5, 0xe1), 0.85, 0.05),
+    ]
+    for vname, vbg, vfg, vsat, vdl in VARIANTS:
+        vcols = {k: tune(c, vbg, vsat, vdl) for k, c in dcols.items()}
+        vcols[0] = vfg
+        vcaret = vfg
+        vsel = mix(vbg, vcols['FNCALL'], 0.28)
+        vinv = mix(vbg, (0xff, 0x2d, 0x56), 0.6)
+        emit('AMXX: ' + vname, vbg, vfg, vcaret, vsel, vcols, dsts, vinv)
     open(OUT, 'w', encoding='utf-8').write('// generated by genamx.py from the AMXX-Editor colour schemes: complete colour schemes (included inside THEMES) \n' + ''.join(rows))
     pal_out = OUT.replace('amx_themes.inc', 'amx_pals.inc')
     open(pal_out, 'w', encoding='utf-8').write('// generated by genamx.py: colour and font style of every syntax kind (13 + AK_*) of each AMXX colour scheme\n' + ''.join(pals))
