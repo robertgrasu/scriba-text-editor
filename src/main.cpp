@@ -4574,14 +4574,28 @@ static void paint() {
   if (g_uiStyle == 1 && MENU_H > TITLE_H) fillRect(0, MENU_H - 1, W, 1, t.fg, 0.1f);
   {
     // title bar: app icon, title, window buttons (the native frame is removed)
-    // the logo (4-caret-lines of the Scriba logos): a dark tile, three lines of text and a caret, drawn on a 16 x 16 grid
-    auto lg = [&](float x, float y, float w, float h, float r, DWORD c) { fillR(rc(10 + x, 7 + y, w, h), c, 1.f, r); };
-    lg(0, 0, 16, 16, 3.6f, 0x1e293b);
-    strokeR(rc(10.5f, 7.5f, 15, 15), 0x64748b, 0.45f, 3.3f);
-    lg(3, 3.9f, 9.6f, 1.5f, .75f, 0x64748b);
-    lg(3, 7.2f, 6.4f, 1.5f, .75f, 0x94a3b8);
-    lg(3, 10.5f, 7.6f, 1.5f, .75f, 0x64748b);
-    lg(11.8f, 9.5f, 1.3f, 3.5f, .65f, 0x2dd4bf);
+    // the logo (Nib / Nord fade of the Scriba logos): a dark tile and a nib with a vertical fade, drawn on a 16 x 16 grid
+    fillR(rc(10, 7, 16, 16), 0x232831, 1.f, 3.6f);
+    if (ID2D1PathGeometry* pg = nullptr; SUCCEEDED(g_d2d->CreatePathGeometry(&pg)) && pg) {
+      ID2D1GeometrySink* sk = nullptr;
+      pg->Open(&sk);
+      const float px[7] = {8, 11.3f, 8.35f, 8.35f, 7.65f, 7.65f, 4.7f}, py[7] = {2.6f, 7.3f, 12.95f, 8, 8, 12.95f, 7.3f};
+      sk->BeginFigure(D2D1::Point2F(10 + px[0], 7 + py[0]), D2D1_FIGURE_BEGIN_FILLED);
+      for (int i = 1; i < 7; i++) sk->AddLine(D2D1::Point2F(10 + px[i], 7 + py[i]));
+      sk->EndFigure(D2D1_FIGURE_END_CLOSED);
+      sk->Close();
+      sk->Release();
+      D2D1_GRADIENT_STOP gs[3] = {{0.f, Rgb(0x8fbcbb)}, {0.55f, Rgb(0x88c0d0)}, {1.f, Rgb(0x81a1c1)}};
+      ID2D1GradientStopCollection* gc = nullptr;
+      ID2D1LinearGradientBrush* gb = nullptr;
+      if (SUCCEEDED(g_rt->CreateGradientStopCollection(gs, 3, &gc)) && gc && SUCCEEDED(g_rt->CreateLinearGradientBrush(D2D1::LinearGradientBrushProperties(D2D1::Point2F(0, 7 + 2.6f), D2D1::Point2F(0, 7 + 12.95f)), gc, &gb)) && gb)
+        g_rt->FillGeometry(pg, gb);
+      if (gb) gb->Release();
+      if (gc) gc->Release();
+      pg->Release();
+    }
+    g_br->SetColor(Rgb(0x232831));
+    g_rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(10 + 8, 7 + 7.2f), .95f, .95f), g_br);
     wstring ttl = d.name;
     if (g_root && !d.isNote) ttl += L" (" + g_root->name + L")";
     ttl += L" - Scriba";
