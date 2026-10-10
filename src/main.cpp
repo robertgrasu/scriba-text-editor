@@ -4532,7 +4532,9 @@ static void paint() {
       if (act) fillR(rc(x, y0, w, th), t.fg, 0.11f, 8);
       else if (hovT) fillR(rc(x, y0, w, th), t.fg, 0.07f, 8);
     }
-    if (act && (g_uiStyle == 0 || g_uiStyle == 1)) fillR(rc(x + 8, y0, w - 16, 2), t.accent, 0.95f, 1);  // the selected tab has a line of the accent colour on top
+    // a thin bar between two tabs that are not selected (as in Sublime); none next to the selected tab
+    if (k + 1 < tr.size() && (int)i != g_active && tr[k + 1].idx != g_active && (g_uiStyle == 0 || g_uiStyle == 1))
+      fillRect(x + w, y0 + 9, 1, th - 18, t.fg, hovT || tr[k + 1].idx == g_hoverTab ? 0.0f : 0.3f);
     g_rt->PopAxisAlignedClip();
     float tx0 = x + 14;
     if (g_docs[i]->isNote) {  // the N badge of a note tab
