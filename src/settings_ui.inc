@@ -144,6 +144,8 @@ static TextArea g_suArea;
 static bool g_suSearchFocus = true;
 static std::string g_suFocus;  // key of the focused field ("" = none, "#hex" the colour popover field)
 static std::string g_suDrop;   // key of the select whose list is open
+static float g_suDropScroll = -1;  // how far the open list is scrolled (-1: show the chosen item)
+static D2D1_RECT_F g_suDropRect{0, 0, 0, 0};
 static std::string g_suColor;  // key of the colour popover
 static float g_suScroll = 0, g_suContent = 0, g_suViewH = 0;
 static vector<SuHit> g_suHits;
@@ -716,22 +718,43 @@ static void drawSettingsPage() {
         drawText(hint.c_str(), (int)hint.size(), pr.left + 12, pr.top + 106, t.fg, uiFont(10.5f), w - 20, 16);
       } else {
         int n = (int)it->opts.size();
-        float w = std::max(160.f, anchor.right - anchor.left), h = n * 28.f + 8;
-        float py = anchor.bottom + 2;
-        if (py + h > H - 40) py = anchor.top - h - 2;
+        float w = std::max(160.f, anchor.right - anchor.left), total = n * 28.f + 8;
+        // the list opens on the side with more room and is as high as that room allows; a long list scrolls
+        float below = (H - 40) - (anchor.bottom + 2) - 6, above = (anchor.top - 2) - (top + headH) - 6;
+        bool openUp = below < std::min(total, 8 * 28.f + 8) && above > below;
+        float avail = std::max(120.f, openUp ? above : below);
+        float h = std::min(total, avail);
+        float py = openUp ? anchor.top - h - 2 : anchor.bottom + 2;
         D2D1_RECT_F pr = rc(anchor.right - w, py, w, h);
+        g_suDropRect = pr;
+        wstring cur = suValueText(*it);
+        float maxScroll = std::max(0.f, total - h);
+        if (g_suDropScroll < 0) {  // first frame: the chosen item in the middle
+          int ci = 0;
+          for (int i = 0; i < n; i++) if (cur == it->opts[i]) ci = i;
+          g_suDropScroll = std::max(0.f, ci * 28.f - h / 2 + 18);
+        }
+        g_suDropScroll = std::max(0.f, std::min(g_suDropScroll, maxScroll));
         fillR(D2D1::RectF(pr.left + 2, pr.top + 4, pr.right + 2, pr.bottom + 4), 0x000000, 0.3f, 6);
         fillR(pr, t.menu, 1.f, 6);
         strokeR(pr, t.border, 1.f, 6);
         g_suHits.push_back({pr, H_BLOCK, "", 0});
-        wstring cur = suValueText(*it);
+        g_rt->PushAxisAlignedClip(rc(pr.left + 1, pr.top + 1, w - 2, h - 2), D2D1_ANTIALIAS_MODE_ALIASED);
+        float iw = w - 8 - (maxScroll > 0 ? 8.f : 0.f);
         for (int i = 0; i < n; i++) {
-          D2D1_RECT_F ir = rc(pr.left + 4, pr.top + 4 + i * 28, w - 8, 28);
-          bool hv = inRect(ir, g_mx, g_my);
+          D2D1_RECT_F ir = rc(pr.left + 4, pr.top + 4 + i * 28 - g_suDropScroll, iw, 28);
+          if (ir.bottom < pr.top || ir.top > pr.bottom) continue;
+          bool hv = inRect(ir, g_mx, g_my) && inRect(pr, g_mx, g_my);
           if (hv) fillR(ir, t.menuHi, 1.f, 4);
-          drawText(it->opts[i], (int)wcslen(it->opts[i]), ir.left + 10, ir.top + 4, t.chromeFg, g_ui, w - 40, 20);
+          drawText(it->opts[i], (int)wcslen(it->opts[i]), ir.left + 10, ir.top + 4, t.chromeFg, g_ui, iw - 36, 20);
           if (cur == it->opts[i]) { g_br->SetColor(Rgb(t.accent)); g_rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(ir.right - 12, ir.top + 14), 3.f, 3.f), g_br); }
-          g_suHits.push_back({ir, H_DROPITEM, std::string(it->key), i});
+          D2D1_RECT_F vis = rc(ir.left, std::max(ir.top, pr.top + 1), ir.right - ir.left, std::min(ir.bottom, pr.bottom - 1) - std::max(ir.top, pr.top + 1));
+          g_suHits.push_back({vis, H_DROPITEM, std::string(it->key), i});
+        }
+        g_rt->PopAxisAlignedClip();
+        if (maxScroll > 0) {  // thin thumb at the right edge
+          float th = std::max(24.f, h * h / total), ty = pr.top + (h - th) * (g_suDropScroll / maxScroll);
+          fillR(rc(pr.right - 8, ty + 2, 4, th - 4), t.scroll, 1.f, 2);
         }
       }
     }
@@ -785,8 +808,8 @@ static void suMouse(float x, float y, int what) {  // 0 down, 1 up
     case H_NAV: g_suJump = fromUtf8(hit->key); break;
     case H_SWITCH: if (it) setSetting(it->key, !sBool(it->key)); break;
     case H_NUM: case H_TEXT: case H_AREA: if (it) suFocusField(hit->key); break;
-    case H_SELECT: g_suColor.clear(); g_suFocus.clear(); g_suDrop = g_suDrop == hit->key ? "" : hit->key; break;
-    case H_FONTARROW: g_suColor.clear(); g_suDrop = g_suDrop == hit->key ? "" : hit->key; break;
+    case H_SELECT: g_suColor.clear(); g_suFocus.clear(); g_suDrop = g_suDrop == hit->key ? "" : hit->key; g_suDropScroll = -1; break;
+    case H_FONTARROW: g_suColor.clear(); g_suDrop = g_suDrop == hit->key ? "" : hit->key; g_suDropScroll = -1; break;
     case H_COLOR: g_suDrop.clear(); g_suColor = g_suColor == hit->key ? "" : hit->key; g_suHex.set(suValueText(*it)); g_suFocus.clear(); break;
     case H_DROPITEM:
       if (it && hit->idx < (int)it->opts.size()) setSetting(it->key, toUtf8(it->opts[hit->idx]));
@@ -829,6 +852,11 @@ static void suMove(float x, float y) {
   redraw();
 }
 static void suWheel(int delta) {
+  if (!g_suDrop.empty() && inRect(g_suDropRect, g_mx, g_my)) {  // over the open list: the list scrolls, not the page
+    g_suDropScroll += -delta / 120.f * 84.f;
+    redraw();
+    return;
+  }
   g_suScroll = std::max(0.f, std::min(std::max(0.f, g_suContent - g_suViewH), g_suScroll - delta / 120.f * 90.f));
   redraw();
 }
