@@ -3921,6 +3921,17 @@ static vector<TabRect> tabRects(int grp) {
   for (auto& p : ws) { r.push_back({x, p.second, p.first}); x += p.second + 1; }
   return r;
 }
+// the icon of a note: a small page with the lines of text, in the colour of the note
+static void drawNoteIcon(float x, float y, DWORD nc) {
+  D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(D2D1::RectF(x + 0.7f, y + 0.7f, x + 13.f, y + 15.3f), 2.8f, 2.8f);
+  g_br->SetColor(Rgb(nc, 0.22f));
+  g_rt->FillRoundedRectangle(rr, g_br);
+  g_br->SetColor(Rgb(nc, 1.f));
+  g_rt->DrawRoundedRectangle(rr, g_br, 1.3f);
+  g_rt->DrawLine(D2D1::Point2F(x + 3.6f, y + 5.2f), D2D1::Point2F(x + 10.1f, y + 5.2f), g_br, 1.3f);
+  g_rt->DrawLine(D2D1::Point2F(x + 3.6f, y + 8.1f), D2D1::Point2F(x + 10.1f, y + 8.1f), g_br, 1.3f);
+  g_rt->DrawLine(D2D1::Point2F(x + 3.6f, y + 11.f), D2D1::Point2F(x + 7.4f, y + 11.f), g_br, 1.3f);
+}
 // bottom status bar: the sidebar icon and the position on the left, then the clickable settings on the right
 struct SItem { D2D1_RECT_F r; int id; wstring text; };
 static vector<SItem> statusItems(Doc& d) {
@@ -4541,9 +4552,7 @@ static void paint() {
       DWORD nc = t.accent;
       auto nm = g_meta.find(g_docs[i]->noteId);
       if (nm != g_meta.end() && !nm->second.color.empty()) nc = noteColorRgb(nm->second.color, t.accent);
-      fillR(rc(tx0, y0 + 9, 14, 14), mixc(styTabBar(), nc, 0.35f), 1.f, 3);
-      g_br->SetColor(Rgb(nc));
-      drawText(L"N", 1, tx0 + 3, y0 + 8, nc, g_uiSmall, 14, 16);
+      drawNoteIcon(tx0, y0 + th / 2 - 8, nc);
       tx0 += 22;
     }
     drawText(g_docs[i]->name.c_str(), (int)g_docs[i]->name.size(), tx0, y0 + 6, act ? t.tabActive : (g_uiStyle == 3 ? mixc(t.bg, t.fg, 0.68f) : t.tabText), g_ui, w - (tx0 - x) - 28, 22);
