@@ -746,6 +746,11 @@ static void drawBuild() {
     drawText(msg, (int)wcslen(msg), x + 14, top + 12, cl.fg, g_ui, w, 20);
   } else {
     float ry = top - g_buildScroll;
+    // the file column is as wide as the longest "file:line" (at most a third of the panel), the message starts after it
+    float locW = 90;
+    for (auto& it : g_build.items) locW = std::max(locW, textWidth(baseName(it.file) + L":" + std::to_wstring(it.line), mono));
+    locW = std::min(locW + 6, std::max(120.f, w * 0.34f));
+    float lx = x + m + 28 + locW + 14;
     for (size_t i = 0; i < g_build.items.size(); i++) {
       const AmxItem& it = g_build.items[i];
       if (ry + 20 > top && ry < y + h) {
@@ -754,9 +759,12 @@ static void drawBuild() {
         DWORD ic = it.type == 1 ? cl.err : cl.warn;
         drawText(it.type == 1 ? L"✕" : L"▲", 1, x + m + 2, ry + 1, ic, mono, 20, 20);
         wstring loc = baseName(it.file) + L":" + std::to_wstring(it.line);
-        drawText(loc.c_str(), (int)loc.size(), x + m + 28, ry + 1, mixc(cl.bg, cl.fg, 0.75f), mono, 200, 20);
-        float lx = x + m + 28 + 150;
-        drawText(it.msg.c_str(), (int)it.msg.size(), lx, ry + 1, cl.fg, mono, w - lx - 80, 20);
+        g_rt->PushAxisAlignedClip(rc(x + m + 28, ry, locW, 20), D2D1_ANTIALIAS_MODE_ALIASED);
+        drawText(loc.c_str(), (int)loc.size(), x + m + 28, ry + 1, mixc(cl.bg, cl.fg, 0.75f), mono, 2000, 20);
+        g_rt->PopAxisAlignedClip();
+        g_rt->PushAxisAlignedClip(rc(lx, ry, std::max(20.f, x + w - 66 - lx), 20), D2D1_ANTIALIAS_MODE_ALIASED);
+        drawText(it.msg.c_str(), (int)it.msg.size(), lx, ry + 1, cl.fg, mono, 4000, 20);
+        g_rt->PopAxisAlignedClip();
         drawText(it.code.c_str(), (int)it.code.size(), x + w - 60, ry + 1, mixc(cl.bg, cl.fg, 0.45f), mono, 50, 20);
         g_pHits.push_back({rc(x, ry, w, 20), P_BUILD_ROW, (int)i});
       }
@@ -767,10 +775,7 @@ static void drawBuild() {
   g_rt->PopAxisAlignedClip();
   float maxS = std::max(0.f, total - viewH);
   g_buildScroll = std::max(0.f, std::min(g_buildScroll, maxS));
-  if (total > viewH) {
-    float th = std::max(24.f, viewH * viewH / total), ty = top + (viewH - th) * (g_buildScroll / std::max(1.f, maxS));
-    fillR(rc(x + w - 9, ty, 6, th), t.scroll, 1.f, 3);
-  }
+  panelScrollbar(x, top, w, viewH, total, &g_buildScroll);
 }
 static bool buildClick(const PHit& h) {
   switch (h.kind) {

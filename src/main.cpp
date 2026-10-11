@@ -2454,7 +2454,8 @@ static void drawFileIcon(float x, float y, DWORD col) {
   g_rt->DrawLine(D2D1::Point2F(x + 7.5f, y + 1.5f), D2D1::Point2F(x + 11.5f, y + 5.5f), g_br, 1.0f);
 }
 static int g_sbHover = -1;
-static bool g_dragSb = false;
+static bool g_dragSb = false, g_dragSbScroll = false;
+static float g_sbScrollOff = 0;
 static float sbContentH() {
   vector<SbRow> rows;
   for (auto* rn : g_roots) flatten(rn, 0, rows);
@@ -2574,10 +2575,20 @@ static void drawSidebar() {
   float ch2 = rows.size() * SB_ROW, vh = h - SB_HEAD;
   if (ch2 > vh) {
     float th = std::max(30.f, vh * vh / ch2), ty = top + SB_HEAD + (vh - th) * (g_sbScroll / (ch2 - vh));
-    fillR(rc(w - 7, ty, 4, th), t.gutterFg, 0.35f, 2);
+    bool hot = g_dragSbScroll || (g_mx >= w - 12 && g_mx < w && g_my >= ty && g_my < ty + th);
+    fillR(rc(w - 8, ty, hot ? 6.f : 4.f, th), t.gutterFg, hot ? 0.6f : 0.35f, 3);
   }
 }
 static bool sbExtraMouse(float x, float y);  // header switch and the notes list (defined with the notes code)
+static void sbScrollDrag(float y) {
+  vector<SbRow> rows;
+  for (auto* rn : g_roots) flatten(rn, 0, rows);
+  float chh = rows.size() * SB_ROW, vh = ch() - STATUS_H - MENU_H - SB_HEAD;
+  if (chh <= vh) return;
+  float th = std::max(30.f, vh * vh / chh);
+  g_sbScroll = std::max(0.f, std::min(chh - vh, (y - g_sbScrollOff - MENU_H - SB_HEAD) / std::max(1.f, vh - th) * (chh - vh)));
+  redraw();
+}
 static bool sidebarMouse(float x, float y, int button) {
   if (!g_sbVisible || x >= g_sbW + 3 || y < MENU_H || y >= ch() - STATUS_H) return false;
   if (x >= g_sbW - 3) { g_dragSb = true; SetCapture(g_hwnd); return true; }
@@ -2590,6 +2601,17 @@ static bool sidebarMouse(float x, float y, int button) {
   if (y < MENU_H + SB_HEAD) return true;
   vector<SbRow> rows;
   for (auto* rn : g_roots) flatten(rn, 0, rows);
+  {  // the scroll bar at the right edge of the list: press on the thumb to drag it, press elsewhere to jump there
+    float chh = rows.size() * SB_ROW, vh = ch() - STATUS_H - MENU_H - SB_HEAD;
+    if (chh > vh && x >= g_sbW - 14 && x < g_sbW - 3) {
+      float th = std::max(30.f, vh * vh / chh), ty = MENU_H + SB_HEAD + (vh - th) * (g_sbScroll / (chh - vh));
+      g_sbScrollOff = (y >= ty && y < ty + th) ? y - ty : th / 2;
+      g_dragSbScroll = true;
+      SetCapture(g_hwnd);
+      sbScrollDrag(y);
+      return true;
+    }
+  }
   int i = (int)std::floor((y - MENU_H - SB_HEAD + g_sbScroll) / SB_ROW);
   if (i < 0 || i >= (int)rows.size()) return true;
   FNode* n = rows[i].n;
@@ -5215,7 +5237,8 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
       for (auto& wb : g_wdBtns) if (inRect(wb.r, x, y)) { SetCursor(LoadCursor(nullptr, IDC_HAND)); redraw(); return 0; }
       if (g_dragDoc) { tabDragMove(x, y); return 0; }
       if (g_dragSb) { g_sbW = std::max(160.f, std::min(600.f, x)); redraw(); return 0; }
-      if (panelsMouse(x, y, 1, 0)) { SetCursor(LoadCursor(nullptr, IDC_SIZENS)); return 0; }
+      if (g_dragSbScroll) { sbScrollDrag(y); return 0; }
+      if (panelsMouse(x, y, 1, 0)) { SetCursor(LoadCursor(nullptr, g_pSbDrag >= 0 ? IDC_ARROW : IDC_SIZENS)); return 0; }
       if (g_fifOpen || g_runOpen) {
         // over the top edge of a panel: the resize cursor; any move repaints the hover of the panel buttons
         for (auto& ph : g_pHits) if ((ph.kind == P_RESIZE_FIF || ph.kind == P_RESIZE_RUN) && inRect(ph.r, x, y)) { SetCursor(LoadCursor(nullptr, IDC_SIZENS)); return 0; }
@@ -5291,7 +5314,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
       panelsMouse(0, 0, 2, 0);
       ccMouseUp();
       if (g_dragDoc) tabDragEnd();
-      g_dragSel = g_dragMap = g_dragSb = g_dragSplit = g_dragVs = false;
+      g_dragSel = g_dragMap = g_dragSb = g_dragSplit = g_dragVs = g_dragSbScroll = false;
       g_wdDrag = false;
       ReleaseCapture();
       return 0;

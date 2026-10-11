@@ -582,10 +582,24 @@ static IDWriteTextFormat* monoFont(float size) {
 struct PHit { D2D1_RECT_F r; int kind; int idx; };
 enum { P_FIF_Q = 1, P_FIF_WHERE, P_FIF_REP, P_FIF_RE, P_FIF_CASE, P_FIF_WORD, P_FIF_FIND, P_FIF_CLOSE, P_FIF_REPLACE, P_FIF_ROW, P_FIF_RES,
        P_RUN_IN, P_RUN_RUN, P_RUN_STOP, P_RUN_CLEAR, P_RUN_CLOSE, P_RUN_OUT, P_RESIZE_FIF, P_RESIZE_RUN, P_RESIZE_BUILD,
-       P_BUILD_CLOSE, P_BUILD_AGAIN, P_BUILD_RAW, P_BUILD_PICK, P_BUILD_ROW, P_BUILD_LIST };
+       P_BUILD_CLOSE, P_BUILD_AGAIN, P_BUILD_RAW, P_BUILD_PICK, P_BUILD_ROW, P_BUILD_LIST, P_SBAR };
+struct PSbar { D2D1_RECT_F track; float* scroll; float maxS, thumbH; bool* stick; };
+static vector<PSbar> g_pSb;  // the scroll bars of the panels of this frame
+static int g_pSbDrag = -1;
+static float g_pSbOff = 0;
 static void drawBuild();  // the AMX Mod X build results (amxx.inc)
 static bool buildClick(const PHit& h);
 static vector<PHit> g_pHits;
+// draws the thumb of a list and makes the whole strip at the right edge pressable: a click outside the thumb jumps there, a drag follows
+static void panelScrollbar(float x, float top, float w, float viewH, float total, float* scroll, bool* stick = nullptr) {
+  float maxS = std::max(0.f, total - viewH);
+  if (total <= viewH + 0.5f) return;
+  float th = std::max(24.f, viewH * viewH / total), ty = top + (viewH - th) * (*scroll / std::max(1.f, maxS));
+  bool hot = (int)g_pSb.size() == g_pSbDrag || (g_mx >= x + w - 14 && g_mx < x + w && g_my >= ty && g_my < ty + th);
+  fillR(rc(x + w - 9, ty, 6, th), T().scroll, hot ? 1.f : 0.75f, 3);
+  g_pSb.push_back({rc(x + w - 14, top, 14, viewH), scroll, maxS, th, stick});
+  g_pHits.push_back({rc(x + w - 14, top, 14, viewH), P_SBAR, (int)g_pSb.size() - 1});
+}
 static void panelToggle(const D2D1_RECT_F& r, const wchar_t* label, bool on, bool hover) {
   const Theme& t = T();
   if (on || hover) fillR(r, t.btn, 1.f, 3);
@@ -717,10 +731,7 @@ static void drawFif() {
   g_rt->PopAxisAlignedClip();
   float maxS = std::max(0.f, total - viewH);
   g_fifScroll = std::max(0.f, std::min(g_fifScroll, maxS));
-  if (total > viewH) {
-    float th = std::max(24.f, viewH * viewH / total), ty = top + (viewH - th) * (g_fifScroll / std::max(1.f, maxS));
-    fillR(rc(x + w - 9, ty, 6, th), t.scroll, 1.f, 3);
-  }
+  panelScrollbar(x, top, w, viewH, total, &g_fifScroll);
 }
 static void drawRun() {
   const Theme& t = T();
@@ -798,13 +809,11 @@ static void drawRun() {
     }
   }
   g_rt->PopAxisAlignedClip();
-  if (total > viewH) {
-    float th = std::max(24.f, viewH * viewH / total), ty = top + (viewH - th) * (g_runScroll / std::max(1.f, maxS));
-    fillR(rc(x + w - 9, ty, 6, th), t.scroll, 1.f, 3);
-  }
+  panelScrollbar(x, top, w, viewH, total, &g_runScroll, &g_runStick);
 }
 static void drawPanels() {
   g_pHits.clear();
+  g_pSb.clear();
   if (g_fifOpen) drawFif();
   if (g_buildOpen) drawBuild();
   if (g_runOpen) drawRun();
@@ -852,7 +861,15 @@ static void runClosePanel() {
 }
 static int g_pDrag = 0;
 static bool panelsMouse(float x, float y, int what, int delta) {  // what: 0 down, 1 move, 2 up, 3 wheel
-  if (what == 2) { bool was = g_pDrag != 0; g_pDrag = 0; return was; }
+  if (what == 2) { bool was = g_pDrag != 0 || g_pSbDrag >= 0; g_pDrag = 0; g_pSbDrag = -1; return was; }
+  if (what == 1 && g_pSbDrag >= 0 && g_pSbDrag < (int)g_pSb.size()) {  // dragging the thumb of a list
+    PSbar& sb = g_pSb[g_pSbDrag];
+    float room = std::max(1.f, (sb.track.bottom - sb.track.top) - sb.thumbH);
+    *sb.scroll = std::max(0.f, std::min(sb.maxS, (y - g_pSbOff - sb.track.top) / room * sb.maxS));
+    if (sb.stick) *sb.stick = *sb.scroll >= sb.maxS - 1;
+    redraw();
+    return true;
+  }
   if (what == 1 && g_pDrag) {
     float bottom = ch() - STATUS_H;
     if (g_pDrag == P_RESIZE_RUN) g_runH = std::max(90.f, std::min(ch() * 0.7f, bottom - y));
@@ -888,6 +905,18 @@ static bool panelsMouse(float x, float y, int what, int delta) {  // what: 0 dow
   };
   switch (hit->kind) {
     case P_RESIZE_FIF: case P_RESIZE_RUN: case P_RESIZE_BUILD: g_pDrag = hit->kind; return true;
+    case P_SBAR:
+      if (hit->idx >= 0 && hit->idx < (int)g_pSb.size()) {
+        PSbar& sb = g_pSb[hit->idx];
+        float room = std::max(1.f, (sb.track.bottom - sb.track.top) - sb.thumbH);
+        float ty = sb.track.top + room * (*sb.scroll / std::max(1.f, sb.maxS));
+        g_pSbOff = (y >= ty && y < ty + sb.thumbH) ? y - ty : sb.thumbH / 2;  // pressed on the thumb: keep the grip; elsewhere: the thumb jumps under the pointer
+        g_pSbDrag = hit->idx;
+        *sb.scroll = std::max(0.f, std::min(sb.maxS, (y - g_pSbOff - sb.track.top) / room * sb.maxS));
+        if (sb.stick) *sb.stick = *sb.scroll >= sb.maxS - 1;
+        redraw();
+      }
+      return true;
     case P_BUILD_CLOSE: case P_BUILD_AGAIN: case P_BUILD_RAW: case P_BUILD_PICK: case P_BUILD_ROW: buildClick(*hit); break;
     case P_FIF_Q: g_panelFocus = 1; g_fifField = 0; setCaretFromX(g_fifQ, hit->r); break;
     case P_FIF_WHERE: g_panelFocus = 1; g_fifField = 1; setCaretFromX(g_fifWhere, hit->r); break;

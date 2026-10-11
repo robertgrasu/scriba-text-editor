@@ -276,6 +276,15 @@ static void testTick() {
       size_t eq = arg.find(L'=');
       if (eq != wstring::npos) setSetting(toUtf8(arg.substr(0, eq)).c_str(), json::parse(toUtf8(arg.substr(eq + 1)), nullptr, false));
     }
+    else if (op == L"wheel") {  // wheel x,y,delta (delta -120 = one notch down)
+      int x = _wtoi(arg.c_str()), y = 0, dl = -120;
+      size_t c = arg.find(L',');
+      if (c != wstring::npos) { y = _wtoi(arg.c_str() + c + 1); size_t c2 = arg.find(L',', c + 1); if (c2 != wstring::npos) dl = _wtoi(arg.c_str() + c2 + 1); }
+      POINT pt{(int)(x / g_dpiScale), (int)(y / g_dpiScale)};
+      ClientToScreen(g_hwnd, &pt);
+      g_mx = (float)x; g_my = (float)y;
+      SendMessageW(g_hwnd, WM_MOUSEWHEEL, MAKEWPARAM(0, (short)dl), MAKELPARAM(pt.x, pt.y));
+    }
     else if (op == L"click" || op == L"move") {
       int x = _wtoi(arg.c_str()), y = 0;
       size_t c = arg.find(L',');
