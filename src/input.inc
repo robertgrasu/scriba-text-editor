@@ -276,6 +276,13 @@ static void testTick() {
       size_t eq = arg.find(L'=');
       if (eq != wstring::npos) setSetting(toUtf8(arg.substr(0, eq)).c_str(), json::parse(toUtf8(arg.substr(eq + 1)), nullptr, false));
     }
+    else if (op == L"cursor") {  // which mouse pointer the last move chose
+      HCURSOR c = GetCursor();
+      const struct { LPCWSTR id; const wchar_t* n; } k[] = {{IDC_ARROW, L"arrow"}, {IDC_HAND, L"hand"}, {IDC_IBEAM, L"ibeam"}, {IDC_SIZEWE, L"sizewe"}, {IDC_SIZENS, L"sizens"}};
+      wstring r = L"other";
+      for (auto& e : k) if (c == LoadCursor(nullptr, e.id)) r = e.n;
+      testLog(L"cursor: " + r);
+    }
     else if (op == L"wheel") {  // wheel x,y,delta (delta -120 = one notch down)
       int x = _wtoi(arg.c_str()), y = 0, dl = -120;
       size_t c = arg.find(L',');

@@ -2454,7 +2454,7 @@ static void drawFileIcon(float x, float y, DWORD col) {
   g_rt->DrawLine(D2D1::Point2F(x + 7.5f, y + 1.5f), D2D1::Point2F(x + 11.5f, y + 5.5f), g_br, 1.0f);
 }
 static int g_sbHover = -1;
-static bool g_dragSb = false, g_dragSbScroll = false;
+static bool g_dragSb = false, g_dragSbScroll = false, g_sbOverflow = false;
 static float g_sbScrollOff = 0;
 static float sbContentH() {
   vector<SbRow> rows;
@@ -2573,6 +2573,7 @@ static void drawSidebar() {
   g_rt->PopAxisAlignedClip();
   // scrollbar thumb
   float ch2 = rows.size() * SB_ROW, vh = h - SB_HEAD;
+  g_sbOverflow = ch2 > vh;
   if (ch2 > vh) {
     float th = std::max(30.f, vh * vh / ch2), ty = top + SB_HEAD + (vh - th) * (g_sbScroll / (ch2 - vh));
     bool hot = g_dragSbScroll || (g_mx >= w - 12 && g_mx < w && g_my >= ty && g_my < ty + th);
@@ -5303,10 +5304,19 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         g_hoverMenu = hm; g_hoverItem = hi; g_hoverTab = ht;
         redraw();
       }
-      bool overText = y >= edTop() && y < ch() - STATUS_H && x > L0() + gutterW() && x < mapX();
+      float vsTy, vsTh;
+      bool inEd = y >= edTop() && y < ch() - STATUS_H && !g_docs.empty() && !g_suOpen && !g_hudOpen && !g_licOpen;
+      bool onVs = g_dragVs || (inEd && x >= mapX() - 12 && x < mapX() && vsGeom(D(), vsTy, vsTh));  // the scroll bar of the editor
+      bool onMap = g_dragMap || (inEd && mapShown() && x >= mapX());                               // the minimap
+      bool onSbBar = g_dragSbScroll || (g_sbVisible && g_sbOverflow && g_sbView == 0 && x >= g_sbW - 14 && x < g_sbW - 3 && y >= MENU_H + SB_HEAD && y < ch() - STATUS_H);
+      bool onPanelBar = g_pSbDrag >= 0;
+      for (auto& sb : g_pSb) if (inRect(sb.track, x, y)) onPanelBar = true;
+      bool overText = inEd && x > L0() + gutterW() && x < mapX() && !onVs;
       hoverMove(x, y, overText && !g_dragSel);
       bool onEdge = g_sbVisible && std::fabs(x - g_sbW) < 4 && y >= MENU_H && y < ch() - STATUS_H;
-      SetCursor(LoadCursor(nullptr, onEdge ? IDC_SIZEWE : (overText && g_openMenu < 0 && !g_palOpen) ? IDC_IBEAM : IDC_ARROW));
+      bool menuOpen = g_openMenu >= 0 || g_palOpen;
+      LPCWSTR cur = onEdge ? IDC_SIZEWE : (!menuOpen && (onVs || onMap || onSbBar || onPanelBar)) ? IDC_HAND : (overText && !menuOpen) ? IDC_IBEAM : IDC_ARROW;
+      SetCursor(LoadCursor(nullptr, cur));
       return 0;
     }
     case WM_LBUTTONUP:
