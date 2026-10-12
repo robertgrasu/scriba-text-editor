@@ -674,6 +674,7 @@ static void ccInputClick(CcChat* c, float x, float y, bool extend) {
 }
 static bool ccMouseDown(float x, float y) {
   if (!g_ccOpen) return false;
+  if (y < MENU_H || y >= ch() - STATUS_H) return false;  // the menu bar and the status bar are not part of the dock (a click on the language under it was swallowed)
   float x0 = ccLeft();
   if (x < x0 - 5) {
     g_ccFocusInput = false;
