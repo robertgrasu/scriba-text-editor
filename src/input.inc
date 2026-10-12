@@ -283,6 +283,14 @@ static void testTick() {
       for (auto& e : k) if (c == LoadCursor(nullptr, e.id)) r = e.n;
       testLog(L"cursor: " + r);
     }
+    else if (op == L"hwheel") {  // sideways wheel at x,y,delta
+      int x = _wtoi(arg.c_str()), y = 0, dl = 120;
+      size_t c = arg.find(L',');
+      if (c != wstring::npos) { y = _wtoi(arg.c_str() + c + 1); size_t c2 = arg.find(L',', c + 1); if (c2 != wstring::npos) dl = _wtoi(arg.c_str() + c2 + 1); }
+      POINT pt{(int)(x / g_dpiScale), (int)(y / g_dpiScale)};
+      ClientToScreen(g_hwnd, &pt);
+      SendMessageW(g_hwnd, WM_MOUSEHWHEEL, MAKEWPARAM(0, (short)dl), MAKELPARAM(pt.x, pt.y));
+    }
     else if (op == L"wheel") {  // wheel x,y,delta (delta -120 = one notch down)
       int x = _wtoi(arg.c_str()), y = 0, dl = -120;
       size_t c = arg.find(L',');
