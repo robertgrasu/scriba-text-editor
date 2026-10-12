@@ -22,6 +22,8 @@ static void applyScheme(int i) {
   g_theme = std::max(0, std::min(i, (int)(sizeof(THEMES) / sizeof(THEMES[0])) - 1));
   g_curTheme = THEMES[g_theme];
   if (g_hasAccent) g_curTheme.accent = g_curTheme.caret = g_curTheme.bookmark = g_accentOverride;
+  // the lines and borders of the window are a soft step from the background towards the text colour (the schemes had a near-black one, which looked harsh on every scheme)
+  g_curTheme.border = mixc(g_curTheme.bg, g_curTheme.fg, g_curTheme.dark ? 0.17f : 0.2f);
   BOOL dark = T().dark;
   DwmSetWindowAttribute(g_hwnd, 20, &dark, sizeof(dark));
   COLORREF cc = RGB((T().chrome >> 16) & 255, (T().chrome >> 8) & 255, T().chrome & 255);

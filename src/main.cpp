@@ -4979,7 +4979,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     case WM_MOUSEHWHEEL: {  // sideways wheel / touchpad: over a tab bar the tabs scroll
       POINT pt{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
       ScreenToClient(h, &pt);
-      if (!g_palOpen && !g_suOpen && !g_hudOpen && tabBarScroll(pt.x * g_dpiScale, pt.y * g_dpiScale, GET_WHEEL_DELTA_WPARAM(wp) / 120.f * 110.f)) return 0;
+      if (!g_palOpen && !g_suOpen && !g_hudOpen && tabBarScroll(pt.x * g_dpiScale, pt.y * g_dpiScale, GET_WHEEL_DELTA_WPARAM(wp) / 120.f * 45.f)) return 0;
       break;
     }
     case WM_MOUSEWHEEL: {
@@ -5000,7 +5000,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
       if (!g_palOpen && !g_suOpen && !g_hudOpen) {  // over a tab bar: the tabs scroll sideways
         POINT pt{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
         ScreenToClient(h, &pt);
-        if (tabBarScroll(pt.x * g_dpiScale, pt.y * g_dpiScale, -delta / 120.f * 110.f)) return 0;
+        if (tabBarScroll(pt.x * g_dpiScale, pt.y * g_dpiScale, -delta / 120.f * 45.f)) return 0;
       }
       if (g_hudOpen && !g_palOpen) { hudWheel(delta, g_mx, g_my); return 0; }
       if (g_suOpen && !g_palOpen) { suWheel(delta); return 0; }
