@@ -3991,6 +3991,7 @@ static vector<SItem> statusItems(Doc& d) {
   }
   return out;
 }
+static void syntaxMenu(float x, float yBottom);  // edit_cmds.inc
 static bool statusClick(float x, float y) {
   if (y < ch() - STATUS_H) return false;
   Doc& d = D();
@@ -4002,7 +4003,7 @@ static bool statusClick(float x, float y) {
       case 10: pickEncoding(); break;
       case 11: pickEol(); break;
       case 12: pickIndent(); break;
-      case 13: pickSyntax(); break;
+      case 13: syntaxMenu(it.r.left, ch() - STATUS_H); break;
       case 20: exec(C_MACROTOGGLE); break;
       case 21: exec(C_LSPPROBLEMS); break;
       case 22: exec(C_GITCHANGED); break;

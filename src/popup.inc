@@ -56,7 +56,7 @@ static void ctxApplyDark() {
   if (setMode) setMode(T().dark ? 2 : 3);  // ForceDark / ForceLight
   if (flush) flush();
 }
-static void ctxShow(const vector<CtxItem>& items, int px, int py) {
+static void ctxShow(const vector<CtxItem>& items, int px, int py, bool bottomAlign = false) {
   if (items.empty()) return;
   if (!g_ctxTestPick.empty()) {
     wstring want = g_ctxTestPick;
@@ -74,7 +74,7 @@ static void ctxShow(const vector<CtxItem>& items, int px, int py) {
   ClientToScreen(g_hwnd, &pt);
   g_ctxOpen = true;
   tipHide();
-  int cmd = TrackPopupMenuEx(m, TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_NOANIMATION, pt.x, pt.y, g_hwnd, nullptr);
+  int cmd = TrackPopupMenuEx(m, TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_NOANIMATION | (bottomAlign ? TPM_BOTTOMALIGN : 0), pt.x, pt.y, g_hwnd, nullptr);
   g_ctxOpen = false;
   DestroyMenu(m);
   if (cmd > 0 && cmd <= (int)flat.size() && flat[cmd - 1]->run) flat[cmd - 1]->run();

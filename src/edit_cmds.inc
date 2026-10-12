@@ -33,6 +33,33 @@ static void pickSyntax() {
   }
   openPick(L"Select syntax", listProvider(all));
 }
+// the language menu of the status bar (as in Sublime): every language in alphabetical order, the current one ticked; it opens upward from the item
+static void syntaxMenu(float x, float yBottom) {
+  Doc& d = D();
+  struct E { wstring name; Lang lang; };
+  vector<E> list;
+  for (auto& sx : SYNTAXES) list.push_back({sx.name, sx.lang});
+  for (size_t i = 0; i < sizeof(TS_LANGS) / sizeof(TS_LANGS[0]); i++) {
+    bool have = false;
+    for (auto& e : list) if (e.name == TS_LANGS[i].name) have = true;
+    if (!have) list.push_back({TS_LANGS[i].name, L_CLIKE});
+  }
+  std::sort(list.begin(), list.end(), [](const E& a, const E& b) { return _wcsicmp(a.name.c_str(), b.name.c_str()) < 0; });
+  vector<CtxItem> items;
+  for (auto& e : list) {
+    CtxItem it = ctxItem(e.name, nullptr);
+    wstring nm = e.name;
+    Lang lg = e.lang;
+    // the name must live as long as the document: take the pointer from the static tables
+    const wchar_t* keep = nullptr;
+    for (auto& sx : SYNTAXES) if (nm == sx.name) keep = sx.name;
+    for (size_t i = 0; !keep && i < sizeof(TS_LANGS) / sizeof(TS_LANGS[0]); i++) if (nm == TS_LANGS[i].name) keep = TS_LANGS[i].name;
+    it.run = [keep, lg] { if (keep) setSyntax(D(), keep, lg); };
+    it.checked = nm == d.langName;
+    items.push_back(it);
+  }
+  ctxShow(items, (int)x, (int)yBottom, true);
+}
 static void clampCaret(Doc& d) {
   d.cur.l = std::min(d.cur.l, (int)d.lines.size() - 1);
   d.anc.l = std::min(d.anc.l, (int)d.lines.size() - 1);
