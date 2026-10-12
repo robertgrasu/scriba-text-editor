@@ -9,6 +9,7 @@ static float ccLeft() {
 static const float CC_TABS_H = 38, CC_HEAD_H = 32;
 static std::map<wstring, D2D1_RECT_F> g_ccAnchors;
 static bool g_ccDragW = false, g_ccInDrag = false;
+static bool ccOnEdge(float x, float y) { return g_ccOpen && x >= ccLeft() - 5 && x < ccLeft() + 4 && y >= MENU_H && y < ch() - STATUS_H; }  // the strip that resizes the dock
 static CcText g_ccInTxt;
 static wstring g_ccInKey;
 static D2D1_RECT_F g_ccInRect{};
@@ -268,6 +269,13 @@ static void drawClaude() {
   auto hov = [&](const D2D1_RECT_F& r) { return inRect(r, g_mx, g_my); };
   fillRect(x0, top, W, bot - top, t.panel);
   fillRect(x0, top, 1, bot - top, t.border);
+  {  // the edge that resizes the dock: a grip in the middle, and a line of the accent colour under the pointer or while dragging
+    bool hot = g_ccDragW || ccOnEdge(g_mx, g_my);
+    if (hot) fillRect(x0 - 1, top, 3, bot - top, t.accent, 0.8f);
+    float gy = (top + bot) / 2;
+    fillR(rc(x0 - 2.5f, gy - 22, 5, 44), hot ? t.accent : t.fg, hot ? 1.f : 0.3f, 2.5f);
+    for (int k = -1; k <= 1; k++) fillR(rc(x0 - 1, gy + k * 9 - 1, 2, 2), t.panel, hot ? 0.9f : 0.7f, 1);
+  }
   g_rt->PushAxisAlignedClip(D2D1::RectF(x0, top, cw(), bot), D2D1_ANTIALIAS_MODE_ALIASED);
 
   /* tabs of the conversations */
@@ -667,13 +675,13 @@ static void ccInputClick(CcChat* c, float x, float y, bool extend) {
 static bool ccMouseDown(float x, float y) {
   if (!g_ccOpen) return false;
   float x0 = ccLeft();
-  if (x < x0 - 3) {
+  if (x < x0 - 5) {
     g_ccFocusInput = false;
     g_ccFocusBlock = nullptr;
     g_ccPop.kind = 0;
     return false;
   }
-  if (x < x0 + 3 && g_ccPop.kind == 0) { g_ccDragW = true; SetCapture(g_hwnd); return true; }
+  if (x < x0 + 4 && g_ccPop.kind == 0) { g_ccDragW = true; SetCapture(g_hwnd); return true; }
   CcChat* c = ccCur();
   // a click outside an open list closes it; the click itself still counts
   if (g_ccPop.kind == 1) {

@@ -5315,6 +5315,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
       hoverMove(x, y, overText && !g_dragSel);
       bool onEdge = g_sbVisible && std::fabs(x - g_sbW) < 4 && y >= MENU_H && y < ch() - STATUS_H;
       bool menuOpen = g_openMenu >= 0 || g_palOpen;
+      if (g_ccDragW || (g_openMenu < 0 && !g_palOpen && ccOnEdge(x, y))) { SetCursor(LoadCursor(nullptr, IDC_SIZEWE)); redraw(); return 0; }
       LPCWSTR cur = onEdge ? IDC_SIZEWE : (!menuOpen && (onVs || onMap || onSbBar || onPanelBar)) ? IDC_HAND : (overText && !menuOpen) ? IDC_IBEAM : IDC_ARROW;
       SetCursor(LoadCursor(nullptr, cur));
       return 0;
