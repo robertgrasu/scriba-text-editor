@@ -4701,6 +4701,7 @@ static void paint() {
   /* status bar */
   fillRect(0, H - STATUS_H, W, STATUS_H, styStatus());
   if (g_uiStyle == 1 || g_uiStyle == 3) fillRect(0, H - STATUS_H, W, 1, t.fg, 0.1f);
+  if (panelsHeight() > 0) fillRect(0, H - STATUS_H, W, 1, mixc(styStatus(), t.fg, 0.28f));  // a bottom panel is open: a line keeps it apart from the status bar
   {
     float sy = H - STATUS_H;
     for (auto& it : statusItems(d)) {
