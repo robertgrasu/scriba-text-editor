@@ -26,9 +26,39 @@
   X(IMAGE, "fmt_image", L"Format: Insert Image\x2026", L"", 0) \
   X(TABLE, "fmt_table", L"Format: Table", L"", 1) \
   X(HR, "fmt_hr", L"Format: Divider", L"", 1) \
-  X(SBFILES, "sb_files", L"View: Side Bar: Files", L"Alt+Shift+1", 0) \
-  X(SBNOTES, "sb_notes", L"View: Side Bar: Notes", L"Alt+Shift+2", 0) \
-  X(SBOUTLINE, "sb_outline", L"View: Side Bar: Outline", L"Alt+Shift+3", 0) \
+  X(SBFILES, "sb_files", L"View: Side Bar: Files", L"Ctrl+K Ctrl+E", 0) \
+  X(SBNOTES, "sb_notes", L"View: Side Bar: Notes", L"Ctrl+K Ctrl+N", 0) \
+  X(SBOUTLINE, "sb_outline", L"View: Side Bar: Outline", L"Ctrl+K Ctrl+O", 0) \
+  X(FINDUNDER, "find_under", L"Find: Find Under", L"Ctrl+F3", 0) \
+  X(FINDUNDERPREV, "find_under_prev", L"Find: Find Under Previous", L"Ctrl+Shift+F3", 0) \
+  X(REPLACENEXT, "replace_next", L"Find: Replace Next", L"Ctrl+Shift+H", 0) \
+  X(SETMARK, "set_mark", L"Edit: Set Mark", L"Ctrl+K Ctrl+Space", 0) \
+  X(SELTOMARK, "select_to_mark", L"Selection: Select to Mark", L"Ctrl+K Ctrl+A", 0) \
+  X(SWAPMARK, "swap_with_mark", L"Edit: Swap with Mark", L"Ctrl+K Ctrl+X", 0) \
+  X(DELTOMARK, "delete_to_mark", L"Edit: Delete to Mark", L"", 0) \
+  X(SHOWCENTER, "show_at_center", L"View: Scroll Caret to Center", L"Ctrl+K Ctrl+C", 0) \
+  X(SCROLLUP, "scroll_line_up", L"View: Scroll Up One Line", L"Ctrl+Up", 0) \
+  X(SCROLLDOWN, "scroll_line_down", L"View: Scroll Down One Line", L"Ctrl+Down", 0) \
+  X(SWITCHFILE, "switch_file", L"Goto: Switch Between Header and Source", L"Alt+O", 0) \
+  X(CLOSETAG, "close_tag", L"Edit: Close Tag", L"Alt+.", 0) \
+  X(OVERWRITE, "toggle_overwrite", L"Edit: Toggle Overwrite Mode", L"Insert", 0) \
+  X(JUMPBACK, "jump_back", L"Goto: Jump Back", L"Alt+-", 0) \
+  X(JUMPFWD, "jump_forward", L"Goto: Jump Forward", L"Alt+Shift+-", 0) \
+  X(PASTEHIST, "paste_from_history", L"Edit: Paste from History\x2026", L"Ctrl+K Ctrl+V", 0) \
+  X(FOCUSG1, "focus_group_1", L"View: Focus Group 1", L"Ctrl+1", 0) \
+  X(FOCUSG2, "focus_group_2", L"View: Focus Group 2", L"Ctrl+2", 0) \
+  X(MOVEG1, "move_to_group_1", L"View: Move File to Group 1", L"Ctrl+Shift+1", 0) \
+  X(MOVEG2, "move_to_group_2", L"View: Move File to Group 2", L"Ctrl+Shift+2", 0) \
+  X(NEWPANE, "new_pane", L"View: New Group", L"Ctrl+K Ctrl+Up", 0) \
+  X(CLOSEPANE, "close_pane", L"View: Close Group", L"Ctrl+K Ctrl+Down", 0) \
+  X(FOLDL2, "fold_level_2", L"Code Folding: Fold Level 2", L"Ctrl+K Ctrl+2", 0) \
+  X(FOLDL3, "fold_level_3", L"Code Folding: Fold Level 3", L"Ctrl+K Ctrl+3", 0) \
+  X(FOLDL4, "fold_level_4", L"Code Folding: Fold Level 4", L"Ctrl+K Ctrl+4", 0) \
+  X(FOLDL5, "fold_level_5", L"Code Folding: Fold Level 5", L"Ctrl+K Ctrl+5", 0) \
+  X(FOLDL6, "fold_level_6", L"Code Folding: Fold Level 6", L"Ctrl+K Ctrl+6", 0) \
+  X(FOLDL7, "fold_level_7", L"Code Folding: Fold Level 7", L"Ctrl+K Ctrl+7", 0) \
+  X(FOLDL8, "fold_level_8", L"Code Folding: Fold Level 8", L"Ctrl+K Ctrl+8", 0) \
+  X(FOLDL9, "fold_level_9", L"Code Folding: Fold Level 9", L"Ctrl+K Ctrl+9", 0) \
   X(NOTEPIN, "pin_note", L"Notes: Pin / Unpin Note", L"Ctrl+Alt+P", 0) \
   X(NOTERENAME, "rename_note", L"Notes: Rename Note\x2026", L"", 0) \
   X(NOTECOLORPICK, "note_color", L"Notes: Set Note Color\x2026", L"", 0) \
@@ -160,9 +190,9 @@
   X(CLAUDETESTS, "claude_tests", L"Tools: Claude Code: Write Tests", L"", 0) \
   X(CLAUDEREFACTOR, "claude_refactor", L"Tools: Claude Code: Refactor This", L"", 0) \
   X(CLAUDEDOC, "claude_comment", L"Tools: Claude Code: Document This", L"", 0) \
-  X(LAYOUT1, "layout_single", L"View: Layout: Single", L"Ctrl+K Ctrl+1", 0) \
-  X(LAYOUT2, "layout_cols", L"View: Layout: Two Columns", L"Ctrl+K Ctrl+2", 0) \
-  X(LAYOUT3, "layout_rows", L"View: Layout: Two Rows", L"Ctrl+K Ctrl+3", 0) \
+  X(LAYOUT1, "layout_single", L"View: Layout: Single", L"Alt+Shift+1", 0) \
+  X(LAYOUT2, "layout_cols", L"View: Layout: Two Columns", L"Alt+Shift+2", 0) \
+  X(LAYOUT3, "layout_rows", L"View: Layout: Two Rows", L"Alt+Shift+8", 0) \
   X(OTHERGROUP, "pane_other", L"View: Focus Other Group", L"F6", 0) \
   X(MOVETAB, "pane_move", L"View: Move File to Other Group", L"Ctrl+K Ctrl+M", 0) \
   X(GITNEXT, "git_next", L"Git: Next Change", L"Alt+F3", 0) \
@@ -352,6 +382,18 @@ static void rebuildKeymap() {
     vector<KeyChord> cs = parseKeys(c.keys);
     if (!cs.empty()) g_keymap.push_back({cs, c.cmd});
   }
+  static const struct { const wchar_t* keys; const char* id; } ALIASES[] = {
+      {L"Ctrl+Shift+Z", "redo"}, {L"Ctrl+F4", "close_file"}, {L"F12", "goto_definition"}, {L"Ctrl+.", "git_next"},
+      {L"Ctrl+K Ctrl+Z", "git_revert"}, {L"Ctrl+K Ctrl+/", "git_diff"}, {L"Ctrl+K Ctrl+;", "git_diff"},
+      {L"Ctrl+Shift+Backspace", "delete_bol"}, {L"Ctrl+Shift+Delete", "delete_eol"}, {L"Ctrl+K Ctrl+0", "unfold_all"},
+      {L"Ctrl+K Ctrl+Left", "pane_other"}, {L"Ctrl+K Ctrl+Right", "pane_other"},
+      {L"Ctrl+K Ctrl+Shift+Left", "pane_move"}, {L"Ctrl+K Ctrl+Shift+Right", "pane_move"}, {L"Alt+Shift+O", "switch_file"}};
+  for (auto& a : ALIASES) {
+    const CmdDef* c = cmdById(a.id);
+    if (!c || overridden.count(c->cmd)) continue;
+    vector<KeyChord> cs = parseKeys(a.keys);
+    if (!cs.empty()) g_keymap.push_back({cs, c->cmd});
+  }
   for (auto& u : g_userKeys) {
     if (u.command.empty() || u.command[0] == '-') continue;
     const CmdDef* c = cmdById(u.command);
@@ -376,12 +418,12 @@ static void buildMenus() {
   struct Def { const wchar_t* name; std::vector<const char*> ids; };
   static const Def defs[] = {
       {L"File", {"new_file", "new_note", "new_window", "-", "open_file", "open_note", "open_recent", "open_folder", "reopen_closed", "-", "save", "save_as", "save_all", "save_encoding", "-", "rename_note", "pin_note", "note_color", "-", "close_file", "close_others", "close_all", "close_window", "-", "exit"}},
-      {L"Edit", {"undo", "redo", "-", "cut", "copy", "paste", "paste_indent", "-", "duplicate_line", "delete_line", "delete_eol", "delete_bol", "join_lines", "swap_up", "swap_down", "insert_after", "insert_before", "transpose", "-", "comment", "block_comment", "indent", "unindent", "reindent", "wrap_paragraph", "-", "sort_lines", "sort_lines_ci", "trim_ws", "complete", "lsp_rename", "lsp_format", "-", "upper", "lower", "title"}},
-      {L"Notes", {"toggle_visual", "md_preview", "toggle_vlines", "toggle_vsyntax", "-", "fmt_h1", "fmt_h2", "fmt_h3", "fmt_p", "-", "fmt_bold", "fmt_italic", "fmt_strike", "fmt_code", "-", "fmt_ul", "fmt_ol", "fmt_task", "fmt_quote", "fmt_codeblock", "-", "fmt_link", "fmt_image", "fmt_table", "fmt_hr", "-", "search_notes"}},
+      {L"Edit", {"undo", "redo", "-", "cut", "copy", "paste", "paste_indent", "paste_from_history", "-", "duplicate_line", "delete_line", "delete_eol", "delete_bol", "join_lines", "swap_up", "swap_down", "insert_after", "insert_before", "transpose", "-", "set_mark", "select_to_mark", "swap_with_mark", "delete_to_mark", "-", "close_tag", "toggle_overwrite", "-", "comment", "block_comment", "indent", "unindent", "reindent", "wrap_paragraph", "-", "sort_lines", "sort_lines_ci", "trim_ws", "complete", "lsp_rename", "lsp_format", "-", "upper", "lower", "title"}},
+      {L"Notes", {"sb_notes", "search_notes", "-", "toggle_visual", "md_preview", "toggle_vlines", "toggle_vsyntax", "-", "fmt_h1", "fmt_h2", "fmt_h3", "fmt_p", "-", "fmt_bold", "fmt_italic", "fmt_strike", "fmt_code", "-", "fmt_ul", "fmt_ol", "fmt_task", "fmt_quote", "fmt_codeblock", "-", "fmt_link", "fmt_image", "fmt_table", "fmt_hr"}},
       {L"Selection", {"select_all", "select_line", "expand_word", "expand_scope", "select_brackets", "split_lines", "-", "next_occ", "skip_occ", "cursor_up", "cursor_down"}},
-      {L"Find", {"find", "replace", "find_next", "find_prev", "use_selection", "-", "find_in_files", "next_result", "prev_result"}},
-      {L"View", {"toggle_sidebar", "sb_files", "sb_notes", "sb_outline", "toggle_minimap", "status_bar", "word_wrap", "-", "layout_single", "layout_cols", "layout_rows", "pane_other", "pane_move", "-", "pick_syntax", "pick_scheme", "pick_ui", "pick_indent", "pick_eol", "-", "fold", "unfold", "fold_all", "unfold_all", "-", "zoom_in", "zoom_out", "zoom_reset", "-", "fullscreen", "distraction"}},
-      {L"Goto", {"goto_anything", "goto_symbol", "goto_line", "goto_bracket", "-", "goto_definition", "lsp_references", "-", "bm_toggle", "bm_next", "bm_prev", "bm_select", "bm_clear", "-", "next_tab", "prev_tab", "move_tab_left", "move_tab_right"}},
+      {L"Find", {"find", "replace", "find_next", "find_prev", "use_selection", "find_under", "find_under_prev", "replace_next", "-", "find_in_files", "next_result", "prev_result"}},
+      {L"View", {"toggle_sidebar", "sb_files", "sb_notes", "sb_outline", "toggle_minimap", "status_bar", "word_wrap", "-", "layout_single", "layout_cols", "layout_rows", "pane_other", "pane_move", "new_pane", "close_pane", "-", "pick_syntax", "pick_scheme", "pick_ui", "pick_indent", "pick_eol", "-", "fold", "unfold", "fold_all", "unfold_all", "fold_level_2", "fold_level_3", "fold_level_4", "-", "scroll_line_up", "scroll_line_down", "show_at_center", "-", "zoom_in", "zoom_out", "zoom_reset", "-", "fullscreen", "distraction"}},
+      {L"Goto", {"goto_anything", "goto_symbol", "goto_line", "goto_bracket", "switch_file", "-", "jump_back", "jump_forward", "-", "goto_definition", "lsp_references", "-", "bm_toggle", "bm_next", "bm_prev", "bm_select", "bm_clear", "-", "next_tab", "prev_tab", "move_tab_left", "move_tab_right"}},
       {L"Tools", {"palette", "-", "claude_panel", "claude_new", "claude_ask", "claude_add_selection", "claude_explain", "claude_fix", "claude_tests", "claude_refactor", "claude_comment", "claude_stop", "-", "lsp_problems", "lsp_status", "lsp_restart", "-", "run_command", "run_stop", "-", "macro_toggle", "macro_play", "macro_save", "macro_run"}},
       {L"Git", {"git_changed_files", "git_diff", "-", "git_next", "git_prev", "git_revert"}},
       {L"Project", {"open_folder", "add_folder", "remove_folders", "refresh_folders", "-", "project_open", "project_save", "-", "reveal_sidebar", "find_in_files"}},

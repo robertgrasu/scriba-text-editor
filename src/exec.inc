@@ -236,11 +236,175 @@ static bool handleKeymap(const KeyChord& c) {
 
 static bool licBlock(int cmd);
 static void licOpen();
+static std::map<const Doc*, Pos> g_marks;  // Ctrl+K Ctrl+Space: one mark per file
+static void cmdFindUnder(int dir) {
+  Doc& d = D();
+  if (!d.hasSel()) {
+    const wstring& s = d.lines[d.cur.l];
+    int a = d.cur.c, b = d.cur.c;
+    while (a > 0 && isWordCh(s[a - 1])) a--;
+    while (b < (int)s.size() && isWordCh(s[b])) b++;
+    if (a == b) { flash(L"No word under the caret"); return; }
+    d.anc = {d.cur.l, a};
+    d.cur = {d.cur.l, b};
+  }
+  if (d.selA().l != d.selB().l) { flash(L"Find Under works on one line"); return; }
+  // a plain search of the word, whole words only, wrapping around; the find bar is not needed
+  wstring w = d.selectedText();
+  auto whole = [&](const wstring& s, size_t p) { return (p == 0 || !isWordCh(s[p - 1])) && (p + w.size() >= s.size() || !isWordCh(s[p + w.size()])); };
+  int n = (int)d.lines.size();
+  Pos from = dir > 0 ? d.selB() : d.selA();
+  for (int k = 0; k <= n; k++) {
+    int l = ((dir > 0 ? from.l + k : from.l - k) % n + n) % n;
+    const wstring& s = d.lines[l];
+    size_t p = wstring::npos;
+    if (dir > 0) {
+      size_t start = k == 0 ? from.c : 0;
+      for (size_t q = s.find(w, start); q != wstring::npos; q = s.find(w, q + 1)) if (whole(s, q)) { p = q; break; }
+      if (k == n && p != wstring::npos && (int)p >= from.c) p = wstring::npos;
+    } else {
+      size_t limit = k == 0 ? (size_t)from.c : s.size() + 1;
+      for (size_t q = s.find(w); q != wstring::npos && q + w.size() <= limit; q = s.find(w, q + 1)) if (whole(s, q)) p = q;
+      if (k == n && p != wstring::npos && (int)p < from.c) p = wstring::npos;
+    }
+    if (p == wstring::npos) continue;
+    d.anc = {l, (int)p};
+    d.cur = {l, (int)(p + w.size())};
+    revealCenter();
+    moved(true);
+    return;
+  }
+}
+static void cmdMark(int what) {  // 0 set, 1 select to mark, 2 swap, 3 delete to mark
+  Doc& d = D();
+  auto it = g_marks.find(&d);
+  if (what == 0) { g_marks[&d] = d.cur; flash(L"Mark set"); return; }
+  if (it == g_marks.end()) { flash(L"No mark set (Ctrl+K Ctrl+Space)"); return; }
+  Pos m = it->second;
+  m.l = std::min(m.l, (int)d.lines.size() - 1);
+  m.c = std::min(m.c, (int)d.lines[m.l].size());
+  if (what == 1) { d.anc = m; moved(true); }
+  else if (what == 2) { it->second = d.cur; d.cur = d.anc = m; moved(false); }
+  else {
+    Pos a = m < d.cur ? m : d.cur, b = m < d.cur ? d.cur : m;
+    if (a == b) return;
+    d.snapshot(0);
+    d.replaceRange(a, b, L"");
+    d.cur = d.anc = a;
+    edited();
+  }
+}
+static void cmdSwitchFile() {
+  Doc& d = D();
+  static const wchar_t* SRC[] = {L"cpp", L"cxx", L"cc", L"c", L"m", L"mm"};
+  static const wchar_t* HDR[] = {L"h", L"hpp", L"hxx", L"hh", L"ipp", L"inl"};
+  size_t dot = d.path.rfind(L'.'), sl = d.path.find_last_of(L"\\/");
+  if (d.path.empty() || dot == wstring::npos || (sl != wstring::npos && dot < sl)) { flash(L"This file has no counterpart"); return; }
+  wstring ext = lowerStr(d.path.substr(dot + 1)), stem = d.path.substr(0, dot + 1);
+  bool isSrc = false, isHdr = false;
+  for (auto* e : SRC) if (ext == e) isSrc = true;
+  for (auto* e : HDR) if (ext == e) isHdr = true;
+  if (!isSrc && !isHdr) { flash(L"This file has no counterpart"); return; }
+  for (auto* e : isSrc ? HDR : SRC) {
+    wstring cand = stem + e;
+    if (GetFileAttributesW(cand.c_str()) != INVALID_FILE_ATTRIBUTES) { openPath(cand); return; }
+  }
+  flash(isSrc ? L"No header next to this file" : L"No source file next to this file");
+}
+// inserts the closing tag of the innermost element that is still open before the caret
+static void cmdCloseTag() {
+  Doc& d = D();
+  static const wchar_t* VOID_TAGS[] = {L"br", L"hr", L"img", L"input", L"meta", L"link", L"area", L"base", L"col", L"embed", L"source", L"track", L"wbr", L"param"};
+  vector<wstring> stack;
+  wstring txt;
+  for (int l = 0; l <= d.cur.l; l++) txt += (l == d.cur.l ? d.lines[l].substr(0, d.cur.c) : d.lines[l] + L"\n");
+  size_t i = 0, n = txt.size();
+  while (i < n) {
+    if (txt[i] != L'<') { i++; continue; }
+    if (txt.compare(i, 4, L"<!--") == 0) { size_t e = txt.find(L"-->", i + 4); if (e == wstring::npos) return; i = e + 3; continue; }
+    if (i + 1 < n && (txt[i + 1] == L'!' || txt[i + 1] == L'?')) { size_t e = txt.find(L'>', i); if (e == wstring::npos) break; i = e + 1; continue; }
+    bool closing = i + 1 < n && txt[i + 1] == L'/';
+    size_t j = i + (closing ? 2 : 1), k = j;
+    while (k < n && (iswalnum(txt[k]) || txt[k] == L'-' || txt[k] == L'_' || txt[k] == L':' || txt[k] == L'.')) k++;
+    if (k == j) { i++; continue; }
+    wstring name = txt.substr(j, k - j), low = lowerStr(name);
+    wchar_t q = 0;
+    size_t e = k;
+    for (; e < n; e++) {  // to the closing '>', skipping quoted attribute values
+      if (q) { if (txt[e] == q) q = 0; }
+      else if (txt[e] == L'"' || txt[e] == L'\'') q = txt[e];
+      else if (txt[e] == L'>') break;
+    }
+    if (e >= n) break;  // the tag the caret is inside of
+    bool selfClosed = e > 0 && txt[e - 1] == L'/';
+    bool isVoid = false;
+    for (auto* v : VOID_TAGS) if (low == v) isVoid = true;
+    if (closing) {
+      for (int s = (int)stack.size() - 1; s >= 0; s--) if (lowerStr(stack[s]) == low) { stack.resize(s); break; }
+    } else if (!selfClosed && !isVoid) stack.push_back(name);
+    i = e + 1;
+  }
+  if (stack.empty()) { flash(L"No open tag to close"); return; }
+  multi([&] { D().insertText(L"</" + stack.back() + L">", 0); });
+  edited();
+}
+static void cmdPasteHistory() {
+  if (g_clipHist.empty()) { flash(L"Nothing copied yet"); return; }
+  vector<PItem> all;
+  for (auto& t : g_clipHist) {
+    PItem it;
+    wstring one;
+    for (wchar_t c : t) { if (c == L'\n' || c == L'\r') { if (!one.empty() && one.back() != L' ') one += L' '; } else if (c == L'\t') one += L' '; else one += c; if (one.size() > 90) break; }
+    it.label = one;
+    int lines = 1;
+    for (wchar_t c : t) if (c == L'\n') lines++;
+    it.right = lines > 1 ? std::to_wstring(lines) + L" lines" : std::to_wstring(t.size()) + L" chars";
+    wstring tt = t;
+    it.run = [tt] { multi([&] { D().insertText(tt, 0); }); edited(); };
+    all.push_back(it);
+  }
+  openPick(L"Paste from history", listProvider(all));
+}
+static void cmdScrollLine(int dir) {
+  Doc& d = D();
+  d.scrollY = std::max(0.f, std::min(d.scrollY + dir * g_lineH, maxScrollY()));
+  redraw();
+}
 static void exec(int cmd) {
   if (licBlock(cmd)) { flash(L"Activate your license first."); licOpen(); return; }  // nothing runs without a license
   Doc& d = D();
   switch (cmd) {
     case C_LICENSE: licOpen(); break;
+    case C_FINDUNDER: cmdFindUnder(1); break;
+    case C_FINDUNDERPREV: cmdFindUnder(-1); break;
+    case C_REPLACENEXT: if (!g_findOpen || !g_replOpen) openFind(true); else replaceOne(); break;
+    case C_SETMARK: cmdMark(0); break;
+    case C_SELTOMARK: cmdMark(1); break;
+    case C_SWAPMARK: cmdMark(2); break;
+    case C_DELTOMARK: cmdMark(3); break;
+    case C_SHOWCENTER: revealCenter(); redraw(); break;
+    case C_SCROLLUP: cmdScrollLine(-1); break;
+    case C_SCROLLDOWN: cmdScrollLine(1); break;
+    case C_SWITCHFILE: cmdSwitchFile(); break;
+    case C_CLOSETAG: cmdCloseTag(); break;
+    case C_OVERWRITE: g_overwrite = !g_overwrite; caretReset(); flash(g_overwrite ? L"Overwrite mode on (Insert to turn it off)" : L"Overwrite mode off"); break;
+    case C_JUMPBACK: cmdJump(-1); break;
+    case C_JUMPFWD: cmdJump(1); break;
+    case C_PASTEHIST: cmdPasteHistory(); break;
+    case C_FOCUSG1: case C_FOCUSG2:
+      if (g_layout == 0) flash(L"Only one group: use View > Layout to split"); else focusGroup(cmd == C_FOCUSG1 ? 0 : 1);
+      break;
+    case C_MOVEG1: case C_MOVEG2: {
+      int dst = cmd == C_MOVEG1 ? 0 : 1;
+      if (g_layout == 0 && dst == 0) break;
+      if (g_layout == 0 || d.group != dst) moveTabToOtherGroup();
+      break;
+    }
+    case C_NEWPANE: if (g_layout == 0) setLayout(1); else flash(L"Already two groups"); break;
+    case C_CLOSEPANE: if (g_layout != 0) setLayout(0); break;
+    case C_FOLDL2: case C_FOLDL3: case C_FOLDL4: case C_FOLDL5: case C_FOLDL6: case C_FOLDL7: case C_FOLDL8: case C_FOLDL9:
+      cmdFoldLevel(cmd - C_FOLDL2 + 2);
+      break;
     case C_NEW: addDoc(new Doc()); break;
     case C_OPEN: {
       wchar_t buf[MAX_PATH * 40] = {};
@@ -549,7 +713,7 @@ static void exec(int cmd) {
     case C_RUNSTOP: runStop(); break;
     case C_AMXCOMPILE: amxxCompile(); break;
     case C_AMXGOTODEF: if (!amxxGotoDefinition()) flash(L"Go to Definition works in Pawn (.sma) files"); break;
-    case C_GOTODEF: if (!amxxGotoDefinition() && !lspGotoDefinition()) flash(L"No language server for this file. Install one (see Preferences: LSP) or use a Pawn file for AMX Mod X."); break;
+    case C_GOTODEF: jumpPush(); if (!amxxGotoDefinition() && !lspGotoDefinition()) flash(L"No language server for this file. Install one (see Preferences: LSP) or use a Pawn file for AMX Mod X."); break;
     case C_LSPREFS: lspFindReferences(); break;
     case C_LSPRENAME: lspRename(); break;
     case C_LSPFORMAT: lspFormat(); break;

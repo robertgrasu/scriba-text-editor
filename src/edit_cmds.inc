@@ -556,6 +556,23 @@ static void cmdFoldAll() {
   redraw();
 }
 static void cmdUnfoldAll() { D().folded.clear(); D().ver++; redraw(); }
+// folds every block that is nested exactly `lvl` blocks deep (1 = the outermost ones)
+static void cmdFoldLevel(int lvl) {
+  Doc& d = D();
+  d.folded.clear();
+  vector<int> ends;  // last lines of the blocks around the current line
+  for (int l = 0; l < (int)d.lines.size(); l++) {
+    while (!ends.empty() && ends.back() < l) ends.pop_back();
+    int e;
+    if (!foldRangeOf(d, l, e)) continue;
+    if ((int)ends.size() + 1 == lvl) d.folded.insert(l);
+    ends.push_back(e);
+  }
+  for (int l : d.folded) { int e; if (foldRangeOf(d, l, e) && d.cur.l > l && d.cur.l <= e) d.cur = d.anc = {l, 0}; }
+  d.ver++;
+  ensureVisible();
+  redraw();
+}
 
 /* ---------------------------------------------------------------- symbols (Goto Symbol) */
 static vector<Symbol> g_symCache;
@@ -570,7 +587,42 @@ static vector<Symbol>& symbolsOf(Doc& d) {
   }
   return g_symCache;
 }
+// places the caret has jumped from (Goto Line, definitions, search results), for Alt+- and Alt+Shift+-
+struct JumpPt { Doc* doc; Pos p; };
+static vector<JumpPt> g_jumps;
+static int g_jumpIdx = 0;  // the entry the caret was last taken back to; == size() when it is at the newest place
+static void jumpPush() {
+  Doc& d = D();
+  if (!g_jumps.empty() && g_jumpIdx > 0 && g_jumpIdx <= (int)g_jumps.size()) g_jumps.resize(g_jumpIdx);
+  if (!g_jumps.empty() && g_jumps.back().doc == &d && g_jumps.back().p.l == d.cur.l) { g_jumpIdx = (int)g_jumps.size(); return; }
+  g_jumps.push_back({&d, d.cur});
+  if (g_jumps.size() > 100) g_jumps.erase(g_jumps.begin());
+  g_jumpIdx = (int)g_jumps.size();
+}
+static void jumpTo(const JumpPt& j) {
+  int idx = -1;
+  for (int i = 0; i < (int)g_docs.size(); i++) if (g_docs[i] == j.doc) idx = i;
+  if (idx < 0) { flash(L"That file is closed"); return; }
+  if (idx != g_active) activateDoc(idx);
+  Doc& d = D();
+  d.cur = d.anc = {std::min(j.p.l, (int)d.lines.size() - 1), 0};
+  d.cur.c = d.anc.c = std::min(j.p.c, (int)d.lines[d.cur.l].size());
+  revealCenter();
+  moved(false);
+}
+static void cmdJump(int dir) {
+  if (dir < 0) {
+    if (g_jumpIdx <= 0 || g_jumps.empty()) { flash(L"No earlier place to jump back to"); return; }
+    if (g_jumpIdx >= (int)g_jumps.size()) { Doc& d = D(); g_jumps.push_back({&d, d.cur}); }
+    g_jumpIdx--;
+  } else {
+    if (g_jumpIdx + 1 >= (int)g_jumps.size()) { flash(L"No later place to jump forward to"); return; }
+    g_jumpIdx++;
+  }
+  jumpTo(g_jumps[g_jumpIdx]);
+}
 static void gotoLine(int l) {
+  jumpPush();
   Doc& d = D();
   d.cur = d.anc = {std::max(0, std::min(l, (int)d.lines.size() - 1)), 0};
   d.wantV = 0;

@@ -891,6 +891,8 @@ static float g_charW = 8.5f, g_lineH = 22.f, g_fontSize = 15.f;
 static vector<Doc*> g_docs;
 static int g_active = 0;
 static bool g_caretOn = true;
+static bool g_overwrite = false;  // Insert: typing replaces the character after the caret
+static vector<wstring> g_clipHist;  // what was copied in this program, newest first
 static int g_openMenu = -1, g_hoverMenu = -1, g_hoverItem = -1, g_hoverTab = -1;
 static bool g_dragSel = false, g_dragMap = false;
 static DWORD g_lastDbl = 0;
@@ -1520,6 +1522,11 @@ static bool closeDoc(int i) {
 
 /* --- clipboard --- */
 static void clipSet(const wstring& t) {
+  if (!t.empty()) {
+    g_clipHist.erase(std::remove(g_clipHist.begin(), g_clipHist.end(), t), g_clipHist.end());
+    g_clipHist.insert(g_clipHist.begin(), t);
+    if (g_clipHist.size() > 30) g_clipHist.pop_back();
+  }
   if (!OpenClipboard(g_hwnd)) return;
   wstring w;
   for (wchar_t c : t) { if (c == L'\n') w += L'\r'; w += c; }
@@ -1583,6 +1590,12 @@ static wstring indentUnit(const Doc& d);
 static void typeChar(wchar_t ch0) {
   Doc& d = D();
   wstring t(1, ch0);
+  if (g_overwrite && !d.hasSel() && !d.readOnly && !d.vis && d.cur.c < (int)d.lines[d.cur.l].size()) {
+    d.snapshot(1);
+    d.replaceRange(d.cur, {d.cur.l, d.cur.c + 1}, t);
+    edited();
+    return;
+  }
   if (g_autoClose && !d.vis && !d.readOnly) {
     const wstring& s = d.lines[d.selA().l];
     int c = d.selA().c;
@@ -2298,6 +2311,7 @@ static FNode* g_root = nullptr;
 static float g_sbScroll = 0, g_olScroll = 0;
 static vector<Symbol>& symbolsOf(Doc& d);
 static void gotoLine(int l);
+static void jumpPush();  // edit_cmds.inc
 static vector<wstring> g_projFiles;  // relative paths, for Goto Anything
 static bool g_projScanned = false;
 
@@ -2420,7 +2434,10 @@ static void flatten(FNode* n, int depth, vector<SbRow>& out) {
     for (auto* k : n->kids) flatten(k, depth + 1, out);
   }
 }
-static const float SB_HEAD = 67, SB_ROW = 22, NOTE_TOP = 112;
+static bool sBool(const char* k);  // settings.inc
+static bool sbPillsShown() { return sBool("sidebar_tabs") || g_sbView == 1; }  // the Files / Notes / Outline switch (the notes list always has it)
+#define SB_HEAD (sbPillsShown() ? 67.f : 34.f)
+static const float SB_ROW = 22, NOTE_TOP = 112;
 static int g_noteMode = 0;  // notes list: 0 list with previews, 1 compact titles, 2 grouped by tag, 3 grouped by colour
 static int g_noteSort = 0;  // 0 newest first, 1 oldest first, 2 title A-Z, 3 date created
 static float g_nFiltH = 0;  // height of the tag/colour filter chips under the notes search box
@@ -2467,7 +2484,7 @@ static void drawSidebar() {
   float top = MENU_H, h = ch() - MENU_H - STATUS_H, w = g_sbW;
   fillRect(0, top, w, h, stySidebar());
   fillRect(w - 1, top, 1, h, t.border, 0.6f);
-  {  // view switch: Files | Notes | Outline pills
+  if (sbPillsShown()) {  // view switch: Files | Notes | Outline pills
     const wchar_t* names[3] = {L"Files", L"Notes", L"Outline"};
     for (int i = 0; i < 3; i++) {
       D2D1_RECT_F pr = sbPill(i);
@@ -2479,7 +2496,7 @@ static void drawSidebar() {
   }
   if (g_sbView == 1) { drawNotesView(top, w, h); return; }
   if (g_sbView == 2) {
-    drawText(L"OUTLINE", 7, 12, top + 44, mixc(t.sidebar, t.fg, 0.45f), g_uiSmall, 150, 18);
+    drawText(L"OUTLINE", 7, 12, top + (sbPillsShown() ? 44.f : 10.f), mixc(t.sidebar, t.fg, 0.45f), g_uiSmall, 150, 18);
     auto& syms = symbolsOf(D());
     if (syms.empty()) {
       drawText(L"No headings or symbols in this file.", 36, 14, top + 76, sbFg(), g_uiSmall, w - 24, 20);
@@ -2508,7 +2525,7 @@ static void drawSidebar() {
     g_rt->PopAxisAlignedClip();
     return;
   }
-  drawText(L"FOLDERS", 7, 12, top + 44, mixc(t.sidebar, t.fg, 0.45f), g_uiSmall, 150, 18);
+  drawText(L"FOLDERS", 7, 12, top + (sbPillsShown() ? 44.f : 10.f), mixc(t.sidebar, t.fg, 0.45f), g_uiSmall, 150, 18);
   if (!g_root) {
     // the message wraps inside the sidebar; the button sits under it, its label centred
     IDWriteTextLayout* lay = nullptr;
@@ -2828,6 +2845,7 @@ static void palAccept() {
   closePalette();
   if (it.run) { it.run(); return; }
   if (it.line >= 0) {
+    jumpPush();
     Doc& d = D();
     d.cur = d.anc = {it.line, 0};
     d.wantV = 0;
@@ -3506,7 +3524,7 @@ static void openPrompt(const wstring& title, const wstring& initial, std::functi
 static bool sbExtraMouse(float x, float y) {
   float top = MENU_H;
   g_nqFocus = false;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3 && sbPillsShown(); i++) {
     D2D1_RECT_F pr = sbPill(i);
     if (inRect(pr, x, y)) {
       g_sbView = i;
@@ -3960,7 +3978,8 @@ struct SItem { D2D1_RECT_F r; int id; wstring text; };
 static vector<SItem> statusItems(Doc& d) {
   vector<SItem> out;
   float sy = ch() - STATUS_H, W = cw();
-  out.push_back({rc(6, sy + 2, 24, STATUS_H - 4), 0, L""});
+  float lx0 = 6;
+  if (sBool("show_sidebar_button")) { out.push_back({rc(6, sy + 2, 24, STATUS_H - 4), 0, L""}); lx0 = 34; }
   wchar_t buf[160];
   int cnum = d.vis ? d.cur.c : d.vcol(d.cur.l, d.cur.c);
   int n;
@@ -3968,8 +3987,13 @@ static vector<SItem> statusItems(Doc& d) {
   else if (d.hasSel()) n = swprintf_s(buf, L"Line %d, Column %d  (%d chars selected)", d.cur.l + 1, cnum + 1, (int)d.selectedText().size());
   else n = swprintf_s(buf, L"Line %d, Column %d", d.cur.l + 1, cnum + 1);
   wstring pos(buf, n);
-  float lx = 34 + textWidth(pos, g_uiSmall) + 14;
-  out.push_back({rc(34, sy + 2, textWidth(pos, g_uiSmall) + 14, STATUS_H - 4), 1, pos});
+  wstring lcMode = sStr("show_line_column");
+  if (lcMode == L"compact") { n = d.extra.empty() ? swprintf_s(buf, L"%d:%d", d.cur.l + 1, cnum + 1) : n; pos = wstring(buf, n); }
+  float lx = lx0;
+  if (lcMode != L"disabled") {
+    lx = lx0 + textWidth(pos, g_uiSmall) + 14;
+    out.push_back({rc(lx0, sy + 2, textWidth(pos, g_uiSmall) + 14, STATUS_H - 4), 1, pos});
+  }
   auto leftItem = [&](int id, const wstring& txt) {
     float iw = textWidth(txt, g_uiSmall) + 14;
     out.push_back({rc(lx, sy + 2, iw, STATUS_H - 4), id, txt});
@@ -3984,7 +4008,9 @@ static vector<SItem> statusItems(Doc& d) {
   wstring items[4] = {d.langName, tabText, d.crlf ? L"Windows" : L"Unix", encName};
   int ids[4] = {13, 12, 11, 10};
   float xr = W - 6;
+  bool shown[4] = {sBool("show_syntax"), sBool("show_indentation"), sBool("show_line_endings"), sBool("show_encoding")};
   for (int k = 0; k < 4; k++) {
+    if (!shown[k]) continue;
     float iw = textWidth(items[k], g_uiSmall) + 14;
     xr -= iw;
     out.push_back({rc(xr, sy + 2, iw, STATUS_H - 4), ids[k], items[k]});
@@ -4439,7 +4465,10 @@ static void paint() {
       if (const WBlock* wbk = d.wAt.size() > (size_t)sl.c.l && d.wAt[sl.c.l] >= 0 ? &d.wb[d.wAt[sl.c.l]] : nullptr) if (wbk->kind == 1) continue;  // a selected picture has no caret
       int crow = rowOfPos(d, sl.c);
       float x = tx - d.scrollX + rowVcol(d, sl.c) * (d.vis ? 1.f : g_charW * lineScale(d, sl.c.l)), y = top + rowTop(d, crow) - d.scrollY;
-      if (x >= L0() + gw) fillRect(x, y + 1, 2, rowH(d, crow) - 2, t.caret);
+      if (x >= L0() + gw) {
+        if (g_overwrite) fillRect(x, y + 1, g_charW, rowH(d, crow) - 2, t.caret, 0.5f);
+        else fillRect(x, y + 1, 2, rowH(d, crow) - 2, t.caret);
+      }
     }
   }
   g_rt->PopAxisAlignedClip();

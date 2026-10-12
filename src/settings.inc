@@ -63,7 +63,8 @@ static json settingsDefaults() {
   return json{
       {"color_scheme", "Mariana"}, {"ui_style", "Classic"}, {"accent_color", ""}, {"font_face", "Consolas"}, {"font_size", 15},
       {"tab_size", 4}, {"translate_tabs_to_spaces", false}, {"detect_indentation", true}, {"word_wrap", true}, {"line_numbers", true},
-      {"gutter", true}, {"show_minimap", true}, {"show_sidebar", true}, {"highlight_line", false}, {"draw_white_space", "none"},
+      {"gutter", true}, {"show_minimap", true}, {"show_sidebar", true}, {"sidebar_tabs", true}, {"show_sidebar_button", true}, {"show_syntax", true}, {"show_indentation", true},
+      {"show_line_endings", true}, {"show_encoding", true}, {"show_line_column", "enabled"}, {"highlight_line", false}, {"draw_white_space", "none"},
       {"rulers", json::array()}, {"scroll_past_end", true}, {"auto_complete", false}, {"indent_guides", true}, {"bracket_colors", true},
       {"spell_check", true}, {"git_integration", true}, {"lsp_enabled", true}, {"lsp_servers", json::object()}, {"auto_save", "off"},
       {"auto_save_delay", 2}, {"claude_path", ""}, {"claude_permission_mode", "acceptEdits"}, {"claude_model", ""},

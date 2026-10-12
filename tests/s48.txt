@@ -1,0 +1,73 @@
+wait 400
+open C:\Users\rober\Desktop\ScribaCpp\tests\fixtures\keys\foo.cpp
+key Alt+O
+wait 200
+log --- switch to header
+dump a1
+key Alt+O
+wait 200
+dump a2
+open C:\Users\rober\Desktop\ScribaCpp\tests\fixtures\keys\page.html
+key Ctrl+End
+key Alt+.
+dump b1
+open C:\Users\rober\Desktop\ScribaCpp\tests\fixtures\keys\w.txt
+key Ctrl+Home
+cmd find_under
+dump c1
+key Ctrl+F3
+dump c2
+key Ctrl+Shift+F3
+dump c3
+key Ctrl+Home
+key Ctrl+K Ctrl+Space
+key Down Down Right Right
+key Ctrl+K Ctrl+A
+dump d1
+key Ctrl+K Ctrl+X
+dump d2
+key Ctrl+Home
+key Insert
+type XY
+dump e1
+key Insert
+type Q
+dump e2
+key Ctrl+Home
+key Ctrl+G
+type 3
+key Enter
+wait 200
+dump f1
+key Alt+-
+wait 200
+dump f2
+key Alt+Shift+-
+wait 200
+dump f3
+key Ctrl+A
+key Ctrl+C
+key Ctrl+End
+cmd paste_from_history
+wait 200
+shot hist
+key Enter
+wait 200
+dump g1
+open C:\Users\rober\Desktop\ScribaCpp\tests\fixtures\keys\nested.cpp
+key Ctrl+K Ctrl+2
+dump h1
+key Ctrl+K Ctrl+0
+dump h2
+cmd new_pane
+wait 200
+shot pane
+key Ctrl+1
+wait 100
+key Ctrl+2
+wait 100
+log --- groups ok
+key Ctrl+K Ctrl+Down
+wait 200
+shot nopane
+quit

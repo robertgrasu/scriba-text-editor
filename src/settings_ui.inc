@@ -27,6 +27,13 @@ static void suInitSpec() {
           {"font_face", L"Font", L"Editor font family. Any installed monospace font works.", SU_TEXT, {L"Consolas", L"Cascadia Mono", L"Cascadia Code", L"Courier New", L"Lucida Console", L"Fira Code", L"JetBrains Mono", L"Source Code Pro", L"Menlo", L"Monaco"}, 0, 0, L"", true},
           {"font_size", L"Font size", L"In pixels. Ctrl+= / Ctrl+- change it temporarily for one window.", SU_NUM, {}, 7, 48},
           {"show_sidebar", L"Show side bar", L"The folders panel on the left.", SU_BOOL, {}},
+          {"sidebar_tabs", L"Side bar: Files / Notes / Outline switch", L"The three buttons at the top of the side bar. When they are hidden, View > Side Bar and Notes > Notes List change what the side bar shows.", SU_BOOL, {}},
+          {"show_sidebar_button", L"Status bar: side bar button", L"The small button at the left end of the status bar that shows and hides the side bar.", SU_BOOL, {}},
+          {"show_line_column", L"Status bar: line and column", L"enabled: Line 3, Column 14. compact: 3:14. disabled: hidden.", SU_SELECT, {L"enabled", L"compact", L"disabled"}},
+          {"show_encoding", L"Status bar: encoding", L"UTF-8, Windows 1252 ...", SU_BOOL, {}},
+          {"show_line_endings", L"Status bar: line endings", L"Windows or Unix.", SU_BOOL, {}},
+          {"show_indentation", L"Status bar: indentation", L"Tab Size: 4 or Spaces: 2.", SU_BOOL, {}},
+          {"show_syntax", L"Status bar: language", L"The language of the file; pressing it opens the list of languages.", SU_BOOL, {}},
           {"show_minimap", L"Show minimap", L"Overview of the file on the right.", SU_BOOL, {}},
       }},
       {L"Editor", {

@@ -275,6 +275,7 @@ static void fifDone(FifResult* r) {
   redraw();
 }
 static void openAt(const wstring& path, int line1, int col, int len) {
+  jumpPush();
   openPath(path);
   Doc& d = D();
   int l = std::max(0, std::min((int)d.lines.size() - 1, line1 - 1));
