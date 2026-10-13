@@ -4018,6 +4018,9 @@ static vector<SItem> statusItems(Doc& d) {
   return out;
 }
 static void syntaxMenu(float x, float yBottom);  // edit_cmds.inc
+static void indentMenu(float x, float yBottom);
+static void eolMenu(float x, float yBottom);
+static void encodingMenu(float x, float yBottom);
 static bool statusClick(float x, float y) {
   if (y < ch() - STATUS_H) return false;
   Doc& d = D();
@@ -4026,9 +4029,9 @@ static bool statusClick(float x, float y) {
     switch (it.id) {
       case 0: exec(C_SIDEBAR); break;
       case 1: exec(C_GOTOLINE); break;
-      case 10: pickEncoding(); break;
-      case 11: pickEol(); break;
-      case 12: pickIndent(); break;
+      case 10: encodingMenu(it.r.left, ch() - STATUS_H); break;
+      case 11: eolMenu(it.r.left, ch() - STATUS_H); break;
+      case 12: indentMenu(it.r.left, ch() - STATUS_H); break;
       case 13: syntaxMenu(it.r.left, ch() - STATUS_H); break;
       case 20: exec(C_MACROTOGGLE); break;
       case 21: exec(C_LSPPROBLEMS); break;

@@ -141,6 +141,60 @@ static void pickEncoding() {
   openPick(L"Encoding", listProvider(all));
 }
 
+// the status bar items open small menus above themselves, like Sublime's
+static void indentMenu(float x, float yBottom) {
+  Doc& d = D();
+  vector<CtxItem> items;
+  CtxItem sp = ctxItem(L"Indent Using Spaces", [] { Doc& z = D(); z.spaces = !z.spaces; z.invalidate(0); redraw(); });
+  sp.checked = d.spaces;
+  items.push_back(sp);
+  items.push_back(ctxSep());
+  for (int n = 1; n <= 8; n++) {
+    CtxItem it = ctxItem(L"Tab Width: " + std::to_wstring(n), [n] { Doc& z = D(); z.tabW = n; z.invalidate(0); ensureVisible(); redraw(); });
+    it.checked = n == d.tabW;
+    items.push_back(it);
+  }
+  items.push_back(ctxSep());
+  items.push_back(ctxItem(L"Guess Settings From Buffer", [] { Doc& z = D(); guessIndent(z); z.invalidate(0); redraw(); }));
+  items.push_back(ctxSep());
+  items.push_back(ctxItem(L"Convert Indentation to Spaces", [] { convertIndent(true); }));
+  items.push_back(ctxItem(L"Convert Indentation to Tabs", [] { convertIndent(false); }));
+  ctxShow(items, (int)x, (int)yBottom, true);
+}
+static void eolMenu(float x, float yBottom) {
+  Doc& d = D();
+  vector<CtxItem> items;
+  CtxItem a = ctxItem(L"Windows (CRLF)", [] { D().crlf = true; D().dirty = true; updateTitle(); redraw(); });
+  CtxItem b = ctxItem(L"Unix (LF)", [] { D().crlf = false; D().dirty = true; updateTitle(); redraw(); });
+  a.checked = d.crlf;
+  b.checked = !d.crlf;
+  items.push_back(a);
+  items.push_back(b);
+  ctxShow(items, (int)x, (int)yBottom, true);
+}
+static void encodingMenu(float x, float yBottom) {
+  Doc& d = D();
+  struct E { const wchar_t* name; int enc; bool bom; };
+  static const E encs[] = {{L"UTF-8", 0, false}, {L"UTF-8 with BOM", 0, true}, {L"UTF-16 LE with BOM", 1, true}, {L"UTF-16 BE with BOM", 2, true}, {L"Western (Windows 1252)", 3, false}};
+  vector<CtxItem> items;
+  for (auto& e : encs) {
+    int enc = e.enc;
+    bool bom = e.bom;
+    CtxItem it = ctxItem(L"Save with Encoding: " + wstring(e.name), [enc, bom] {
+      Doc& z = D();
+      z.enc = enc;
+      z.bom = bom;
+      z.dirty = true;
+      if (!z.path.empty() && !z.isNote) doSave(z);
+      updateTitle();
+      redraw();
+    });
+    it.checked = d.enc == e.enc && d.bom == e.bom;
+    items.push_back(it);
+  }
+  ctxShow(items, (int)x, (int)yBottom, true);
+}
+
 /* ---------------------------------------------------------------- bracket and selection commands */
 static long offsetOf(Doc& d, Pos p) {
   long o = 0;
