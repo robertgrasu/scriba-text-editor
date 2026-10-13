@@ -63,6 +63,7 @@ static wstring g_fifSum;
 static FifResult g_fifRes;
 static bool g_fifHave = false, g_fifBusy = false;
 static float g_fifScroll = 0, g_buildScroll = 0;
+static float g_fifMax = 0, g_buildMax = 0, g_runMax = 0;  // how far each list can scroll, from the last frame: the wheel stops there
 static int g_fifCursor = -1;  // index among all matches
 static std::atomic<int> g_fifGen{0};
 static std::atomic<bool> g_fifCancel{false};
@@ -731,6 +732,7 @@ static void drawFif() {
   }
   g_rt->PopAxisAlignedClip();
   float maxS = std::max(0.f, total - viewH);
+  g_fifMax = maxS;
   g_fifScroll = std::max(0.f, std::min(g_fifScroll, maxS));
   panelScrollbar(x, top, w, viewH, total, &g_fifScroll);
 }
@@ -784,6 +786,7 @@ static void drawRun() {
   }
   float total = rows.size() * lineH + 10;
   float maxS = std::max(0.f, total - viewH);
+  g_runMax = maxS;
   if (g_runScroll > maxS) g_runScroll = maxS;
   g_runScroll = std::max(0.f, g_runScroll);
   g_pHits.push_back({rc(x, top, w, viewH), P_RUN_OUT, 0});
@@ -861,6 +864,25 @@ static void runClosePanel() {
   redraw();
 }
 static int g_pDrag = 0;
+// which open panel (1 find in files, 2 build results, 3 run) the point is over, 0 for none; the whole panel counts, not only its lists and buttons
+static int panelAt(float x, float y) {
+  if (g_fifOpen && inRect(panelRect(1), x, y)) return 1;
+  if (g_buildOpen && inRect(panelRect(2), x, y)) return 2;
+  if (g_runOpen && inRect(panelRect(3), x, y)) return 3;
+  return 0;
+}
+// scrolls one list by the wheel, never past its first or last row
+static void panelWheel(int which, int delta) {
+  auto step = [&](float& s, float mx) { s = std::max(0.f, std::min(mx, s - delta / 120.f * 54)); };
+  if (which == 1) step(g_fifScroll, g_fifMax);
+  else if (which == 2) step(g_buildScroll, g_buildMax);
+  else {
+    g_runScroll = std::min(g_runScroll, g_runMax);  // 1e9 while following the output
+    step(g_runScroll, g_runMax);
+    g_runStick = g_runScroll >= g_runMax - 1;  // back at the bottom: follow the output again
+  }
+  redraw();
+}
 static bool panelsMouse(float x, float y, int what, int delta) {  // what: 0 down, 1 move, 2 up, 3 wheel
   if (what == 2) { bool was = g_pDrag != 0 || g_pSbDrag >= 0; g_pDrag = 0; g_pSbDrag = -1; return was; }
   if (what == 1 && g_pSbDrag >= 0 && g_pSbDrag < (int)g_pSb.size()) {  // dragging the thumb of a list
@@ -887,16 +909,17 @@ static bool panelsMouse(float x, float y, int what, int delta) {  // what: 0 dow
   if (what == 3) {
     for (int i = (int)g_pHits.size() - 1; i >= 0; i--) {
       if (!inRect(g_pHits[i].r, x, y)) continue;
-      if (g_pHits[i].kind == P_FIF_RES) { g_fifScroll = std::max(0.f, g_fifScroll - delta / 120.f * 54); redraw(); return true; }
-      if (g_pHits[i].kind == P_RUN_OUT) { g_runScroll = std::max(0.f, g_runScroll - delta / 120.f * 54); g_runStick = false; redraw(); return true; }
-      if (g_pHits[i].kind == P_BUILD_LIST) { g_buildScroll = std::max(0.f, g_buildScroll - delta / 120.f * 54); redraw(); return true; }
+      if (g_pHits[i].kind == P_FIF_RES || g_pHits[i].kind == P_RUN_OUT || g_pHits[i].kind == P_BUILD_LIST) { panelWheel(g_pHits[i].kind == P_FIF_RES ? 1 : g_pHits[i].kind == P_BUILD_LIST ? 2 : 3, delta); return true; }
     }
-    return false;
+    // over the title or an empty part of a panel: the wheel still belongs to the panel, not to the code behind it
+    int pa = panelAt(x, y);
+    if (pa) panelWheel(pa, delta);
+    return pa != 0;
   }
   const PHit* hit = nullptr;
   for (int i = (int)g_pHits.size() - 1; i >= 0; i--) if (inRect(g_pHits[i].r, x, y)) { hit = &g_pHits[i]; break; }
   if (what == 1) return false;
-  if (!hit) return false;
+  if (!hit) return panelAt(x, y) != 0;  // a click on the title of a panel must not reach the code behind it
   auto setCaretFromX = [&](LineEdit& e, const D2D1_RECT_F& r) {
     float rel = x - (r.left + 9);
     int best = (int)e.t.size();

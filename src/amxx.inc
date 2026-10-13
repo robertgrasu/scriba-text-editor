@@ -774,6 +774,7 @@ static void drawBuild() {
   }
   g_rt->PopAxisAlignedClip();
   float maxS = std::max(0.f, total - viewH);
+  g_buildMax = maxS;
   g_buildScroll = std::max(0.f, std::min(g_buildScroll, maxS));
   panelScrollbar(x, top, w, viewH, total, &g_buildScroll);
 }

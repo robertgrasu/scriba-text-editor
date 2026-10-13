@@ -5280,9 +5280,9 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
       if (g_dragSb) { g_sbW = std::max(160.f, std::min(600.f, x)); redraw(); return 0; }
       if (g_dragSbScroll) { sbScrollDrag(y); return 0; }
       if (panelsMouse(x, y, 1, 0)) { SetCursor(LoadCursor(nullptr, g_pSbDrag >= 0 ? IDC_ARROW : IDC_SIZENS)); return 0; }
-      if (g_fifOpen || g_runOpen) {
+      if (g_fifOpen || g_runOpen || g_buildOpen) {
         // over the top edge of a panel: the resize cursor; any move repaints the hover of the panel buttons
-        for (auto& ph : g_pHits) if ((ph.kind == P_RESIZE_FIF || ph.kind == P_RESIZE_RUN) && inRect(ph.r, x, y)) { SetCursor(LoadCursor(nullptr, IDC_SIZENS)); return 0; }
+        for (auto& ph : g_pHits) if ((ph.kind == P_RESIZE_FIF || ph.kind == P_RESIZE_RUN || ph.kind == P_RESIZE_BUILD) && inRect(ph.r, x, y)) { SetCursor(LoadCursor(nullptr, IDC_SIZENS)); return 0; }
         D2D1_RECT_F pa = D2D1::RectF(panelsLeft(), ch() - STATUS_H - panelsHeight(), cw(), ch() - STATUS_H);
         if (inRect(pa, x, y)) { redraw(); SetCursor(LoadCursor(nullptr, IDC_ARROW)); return 0; }
       }
