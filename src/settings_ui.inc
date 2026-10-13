@@ -617,7 +617,6 @@ static void drawSettingsPage() {
       D2D1_RECT_F r = rc(x, top + 10, w, 36);
       bool on = g_suTab == i, hv = inRect(r, g_mx, g_my);
       if (on || hv) fillR(r, t.btn, 1.f, 4);
-      if (on) fillRect(r.left, r.bottom - 2, w, 2, t.accent);
       drawText(names[i], (int)wcslen(names[i]), r.left + 14, r.top + 8, on ? t.fg : t.statusText, uiFont(13.f, true), w, 20);
       g_suHits.push_back({r, H_TAB, "", i});
       x += w + 4;
@@ -674,7 +673,6 @@ static void drawSettingsPage() {
       D2D1_RECT_F r = rc(10, y, navW - 20, 36);
       bool on = (int)i == active, hv = inRect(r, g_mx, g_my);
       if (on || hv) fillR(r, t.btn, 1.f, 6);
-      if (on) fillRect(r.left, r.top + 4, 3, 28, t.accent);
       suIcon(g_suTab == 1 ? L"keys" : name, r.left + 12, r.top + 10, t.fg, on ? 0.9f : 0.75f);
       drawText(name.c_str(), (int)name.size(), r.left + 39, r.top + 8, on ? t.fg : t.statusText, uiFont(13.5f), navW - 110, 22);
       int count = 0;
