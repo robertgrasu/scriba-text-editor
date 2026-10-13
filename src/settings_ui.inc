@@ -446,7 +446,7 @@ static void suDrawSettingsBody(float bx, float by, float bw, float bh) {
   const Theme& t = T();
   suInitSpec();
   wstring q = lowerStr(trimW(g_suSearch.t));
-  float cardX = bx + 32, cardW = std::min(980.f, bw - 64);
+  float cardX = bx + 32, cardW = bw - 64;
   float y = by + 22 - g_suScroll;
   float contentTop = by + 22;
   g_suNavY.clear();
@@ -513,7 +513,7 @@ static void suDrawSettingsBody(float bx, float by, float bw, float bh) {
 static void suDrawKeysBody(float bx, float by, float bw, float bh) {
   const Theme& t = T();
   wstring q = lowerStr(trimW(g_suSearch.t));
-  float cardX = bx + 32, cardW = std::min(980.f, bw - 64);
+  float cardX = bx + 32, cardW = bw - 64;
   float y = by + 22 - g_suScroll;
   g_suNavY.clear();
   std::map<wstring, vector<const CmdDef*>> groups;
