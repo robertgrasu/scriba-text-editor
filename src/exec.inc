@@ -236,6 +236,7 @@ static bool handleKeymap(const KeyChord& c) {
 
 static bool licBlock(int cmd);
 static void licOpen();
+static void ccTrustFolder();  // claude_chat.inc
 static std::map<const Doc*, Pos> g_marks;  // Ctrl+K Ctrl+Space: one mark per file
 static void cmdFindUnder(int dir) {
   Doc& d = D();
@@ -375,6 +376,7 @@ static void exec(int cmd) {
   Doc& d = D();
   switch (cmd) {
     case C_LICENSE: licOpen(); break;
+    case C_CLAUDETRUST: ccTrustFolder(); break;
     case C_FINDUNDER: cmdFindUnder(1); break;
     case C_FINDUNDERPREV: cmdFindUnder(-1); break;
     case C_REPLACENEXT: if (!g_findOpen || !g_replOpen) openFind(true); else replaceOne(); break;

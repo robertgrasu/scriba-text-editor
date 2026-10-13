@@ -184,6 +184,7 @@
   X(CLAUDENEW, "claude_new", L"Tools: Claude Code: New Conversation", L"", 0) \
   X(CLAUDEASK, "claude_ask", L"Tools: Claude Code: Ask About Selection\x2026", L"Ctrl+Alt+Shift+J", 0) \
   X(CLAUDESTOP, "claude_stop", L"Tools: Claude Code: Stop", L"", 0) \
+  X(CLAUDETRUST, "claude_trust", L"Tools: Claude Code: Trust This Folder\x2026", L"", 0) \
   X(CLAUDEADD, "claude_add_selection", L"Tools: Claude Code: Add Selection to Chat", L"Ctrl+Alt+K", 0) \
   X(CLAUDEEXPLAIN, "claude_explain", L"Tools: Claude Code: Explain This", L"", 0) \
   X(CLAUDEFIX, "claude_fix", L"Tools: Claude Code: Find and Fix Problems", L"", 0) \
@@ -424,7 +425,7 @@ static void buildMenus() {
       {L"Find", {"find", "replace", "find_next", "find_prev", "use_selection", "find_under", "find_under_prev", "replace_next", "-", "find_in_files", "next_result", "prev_result"}},
       {L"View", {"toggle_sidebar", "sb_files", "sb_notes", "sb_outline", "toggle_minimap", "status_bar", "word_wrap", "-", "layout_single", "layout_cols", "layout_rows", "pane_other", "pane_move", "new_pane", "close_pane", "-", "pick_syntax", "pick_scheme", "pick_ui", "pick_indent", "pick_eol", "-", "fold", "unfold", "fold_all", "unfold_all", "fold_level_2", "fold_level_3", "fold_level_4", "-", "scroll_line_up", "scroll_line_down", "show_at_center", "-", "zoom_in", "zoom_out", "zoom_reset", "-", "fullscreen", "distraction"}},
       {L"Goto", {"goto_anything", "goto_symbol", "goto_line", "goto_bracket", "switch_file", "-", "jump_back", "jump_forward", "-", "goto_definition", "lsp_references", "-", "bm_toggle", "bm_next", "bm_prev", "bm_select", "bm_clear", "-", "next_tab", "prev_tab", "move_tab_left", "move_tab_right"}},
-      {L"Tools", {"palette", "-", "claude_panel", "claude_new", "claude_ask", "claude_add_selection", "claude_explain", "claude_fix", "claude_tests", "claude_refactor", "claude_comment", "claude_stop", "-", "lsp_problems", "lsp_status", "lsp_restart", "-", "run_command", "run_stop", "-", "macro_toggle", "macro_play", "macro_save", "macro_run"}},
+      {L"Tools", {"palette", "-", "claude_panel", "claude_new", "claude_ask", "claude_add_selection", "claude_explain", "claude_fix", "claude_tests", "claude_refactor", "claude_comment", "claude_stop", "claude_trust", "-", "lsp_problems", "lsp_status", "lsp_restart", "-", "run_command", "run_stop", "-", "macro_toggle", "macro_play", "macro_save", "macro_run"}},
       {L"Git", {"git_changed_files", "git_diff", "-", "git_next", "git_prev", "git_revert"}},
       {L"Project", {"open_folder", "add_folder", "remove_folders", "refresh_folders", "-", "project_open", "project_save", "-", "reveal_sidebar", "find_in_files"}},
       {L"Preferences", {"settings", "keybindings", "-", "settings_json", "keybindings_json", "snippets_json", "-", "pick_scheme", "pick_ui"}},

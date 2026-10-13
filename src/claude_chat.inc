@@ -917,7 +917,7 @@ static void ccOnEvent(CcChat* c, const json& ev) {
       c->trustShown = c->cwd;
       ccAdd(c, CB_TRUST,
             L"Claude Code has not been asked to trust this folder yet, so the permission rules of the project (.claude/settings.json) are ignored. Claude still works, but asks more often. "
-            L"To trust it, run claude once in this folder from a terminal (or open it in VS Code) and accept the question.");
+            L"To trust it, use Tools > Claude Code: Trust This Folder (then start a new conversation), or run claude once in this folder from a terminal and accept the question.");
       return;
     }
     ccAdd(c, CB_WARN, t.substr(0, 600));
@@ -1162,4 +1162,47 @@ static void ccAddSelection(const wstring& file, int from, int to, const wstring&
 static void ccShutdown() {
   ccSaveStore();
   clShutdownAll();
+}
+
+// Claude Code keeps "this folder is trusted" in ~/.claude.json (projects -> <folder> -> hasTrustDialogAccepted). Scriba sets it for one folder,
+// and only after the user has said yes: a trusted folder may run the hooks and commands of its .claude/settings.json.
+static void ccTrustFolder() {
+  CcChat* c = ccCur();
+  wstring cwd = c ? c->cwd : L"";
+  if (cwd.empty() && g_root) cwd = g_root->path;
+  if (cwd.empty() && !g_docs.empty() && !D().path.empty()) { size_t k = D().path.find_last_of(L"\\/"); if (k != wstring::npos) cwd = D().path.substr(0, k); }
+  if (cwd.empty()) { flash(L"Open a folder or a file first"); return; }
+  wchar_t home[MAX_PATH];
+  if (!GetEnvironmentVariableW(L"USERPROFILE", home, MAX_PATH)) { flash(L"Cannot find the user folder"); return; }
+  wstring cfg = wstring(home) + L"\\.claude.json";
+  wstring ask = L"Trust this folder for Claude Code?\n\n" + cwd +
+                L"\n\nClaude Code will then follow the permission rules, hooks and commands in the .claude folder of this project. Say yes only for folders you wrote or know. Scriba writes the flag into " + cfg + L" (a copy is kept next to it).";
+  if (appMsgBox(g_hwnd, ask.c_str(), L"Trust this folder", MB_YESNO | MB_ICONQUESTION) != IDYES) return;
+  using oj = nlohmann::ordered_json;
+  oj root = oj::object();
+  vector<char> raw;
+  if (readAll(cfg, raw) && !raw.empty()) {
+    root = oj::parse(raw.begin(), raw.end(), nullptr, false);
+    if (!root.is_object()) { flash(L"~/.claude.json is not in the expected format; nothing changed"); return; }
+    CopyFileW(cfg.c_str(), (cfg + L".scriba-backup").c_str(), FALSE);
+  }
+  auto norm = [](std::string s) { for (auto& ch : s) { if (ch == '\\') ch = '/'; ch = (char)tolower((unsigned char)ch); } while (s.size() > 1 && s.back() == '/') s.pop_back(); return s; };
+  std::string want = norm(toUtf8(cwd)), key;
+  if (!root.contains("projects") || !root["projects"].is_object()) root["projects"] = oj::object();
+  for (auto it = root["projects"].begin(); it != root["projects"].end(); ++it) if (norm(it.key()) == want) { key = it.key(); break; }
+  if (key.empty()) {  // new entry, written the way Claude Code writes its keys: forward slashes, drive letter in lower case
+    key = toUtf8(cwd);
+    for (auto& ch : key) if (ch == '\\') ch = '/';
+    if (key.size() > 1 && key[1] == ':') key[0] = (char)tolower((unsigned char)key[0]);
+    root["projects"][key] = oj::object();
+  }
+  root["projects"][key]["hasTrustDialogAccepted"] = true;
+  std::string out = root.dump(2);
+  wstring tmp = cfg + L".scriba-tmp";
+  HANDLE h = CreateFileW(tmp.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+  DWORD wr = 0;
+  bool ok = h != INVALID_HANDLE_VALUE && WriteFile(h, out.data(), (DWORD)out.size(), &wr, nullptr) && wr == out.size();
+  if (h != INVALID_HANDLE_VALUE) CloseHandle(h);
+  if (!ok || !MoveFileExW(tmp.c_str(), cfg.c_str(), MOVEFILE_REPLACE_EXISTING)) { DeleteFileW(tmp.c_str()); flash(L"Could not write ~/.claude.json"); return; }
+  flash(L"Folder trusted. Start a new Claude conversation for it to apply.");
 }
