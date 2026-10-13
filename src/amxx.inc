@@ -691,10 +691,10 @@ static void amxBuildDone(AmxBuildResult* r) {
   swprintf_s(ms, L"%.1f", r->ms / 1000.0);
   wchar_t kb[32];
   swprintf_s(kb, L"%.1f", r->size / 1024.0);
-  if (g_build.ok) g_build.state = L"Compiled " + baseName(r->outFile) + L" (" + kb + L" KB) in " + ms + L" s" + (warnings ? L" — " + std::to_wstring(warnings) + L" warning" + (warnings == 1 ? L"" : L"s") : L"");
-  else g_build.state = L"Failed — " + std::to_wstring(errors) + L" error" + (errors == 1 ? L"" : L"s") + (warnings ? L", " + std::to_wstring(warnings) + L" warning" + (warnings == 1 ? L"" : L"s") : L"");
+  if (g_build.ok) g_build.state = L"Compiled " + baseName(r->outFile) + L" (" + kb + L" KB) in " + ms + L" s" + (warnings ? L" - " + std::to_wstring(warnings) + L" warning" + (warnings == 1 ? L"" : L"s") : L"");
+  else g_build.state = L"Failed - " + std::to_wstring(errors) + L" error" + (errors == 1 ? L"" : L"s") + (warnings ? L", " + std::to_wstring(warnings) + L" warning" + (warnings == 1 ? L"" : L"s") : L"");
   amxApplyMarks(g_build.items);
-  flash(g_build.ok ? L"Compiled " + baseName(r->outFile) : L"Compilation failed — see the list below the editor");
+  flash(g_build.ok ? L"Compiled " + baseName(r->outFile) : L"Compilation failed - see the list below the editor");
   if (!g_build.ok) {
     for (auto& it : g_build.items) if (it.type == 1) { openAt(it.file, it.line, 0, 0); break; }
   }

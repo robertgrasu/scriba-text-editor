@@ -10,7 +10,7 @@ static vector<NTagHit> g_ntagHits;
 static float g_nContentH = 0;
 
 static const wchar_t* NOTE_VIEWS[] = {L"List with previews", L"Compact titles", L"Grouped by tag", L"Grouped by color"};
-static const wchar_t* NOTE_SORTS[] = {L"Newest first", L"Oldest first", L"Title A–Z", L"Date created"};
+static const wchar_t* NOTE_SORTS[] = {L"Newest first", L"Oldest first", L"Title A-Z", L"Date created"};
 static const float NF_TOP = 102;  // the filter chips start here (below the search box), relative to the menu bar
 
 static vector<int> notesVisible() {
