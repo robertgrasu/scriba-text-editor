@@ -2450,7 +2450,8 @@ static float g_openBtnY = 0;
 static D2D1_RECT_F openFolderBtnRect(float y) {
   g_openBtnY = y;
   float w = textWidth(L"Open Folder...", g_ui) + 32;
-  return D2D1::RectF(14, y, 14 + w, y + 30);
+  float x = std::max(14.f, (g_sbW - w) / 2);  // centred in the side bar
+  return D2D1::RectF(x, y, x + w, y + 30);
 }
 static DWORD sbHi() { return mixc(T().sidebar, T().fg, 0.09f); }
 static DWORD sbFg() { return mixc(T().sidebar, T().fg, 0.72f); }
@@ -2537,6 +2538,7 @@ static void drawSidebar() {
     float msgH = 0;
     if (lay) {
       lay->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
+      lay->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
       DWRITE_TEXT_METRICS tm{};
       lay->GetMetrics(&tm);
       msgH = tm.height;
@@ -5027,9 +5029,20 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     case WM_SETFOCUS: case WM_KILLFOCUS: redraw(); return 0;
     case WM_COPYDATA: {  // a second launch with files (WinSCP, "Open with", the command line) hands them to this window
       auto* cds = (COPYDATASTRUCT*)lp;
-      if (!cds || cds->dwData != 0x5C1B0A01 || !cds->lpData || cds->cbData < sizeof(wchar_t)) return FALSE;
+      if (!cds || (cds->dwData != 0x5C1B0A01 && cds->dwData != 0x5C1B0A02) || !cds->lpData || cds->cbData < sizeof(wchar_t)) return FALSE;
       wstring all((const wchar_t*)cds->lpData, cds->cbData / sizeof(wchar_t));
       while (!all.empty() && all.back() == 0) all.pop_back();  // the terminator the sender added
+      if (cds->dwData == 0x5C1B0A02) {  // is any of these files still open in a tab? (the sender waits for the answer to be no)
+        size_t qa = 0;
+        while (qa <= all.size()) {
+          size_t qb = all.find(L'\n', qa);
+          if (qb == wstring::npos) qb = all.size();
+          wstring one = all.substr(qa, qb - qa);
+          if (!one.empty()) for (auto* dd : g_docs) if (!dd->path.empty() && _wcsicmp(dd->path.c_str(), one.c_str()) == 0) return TRUE;
+          qa = qb + 1;
+        }
+        return FALSE;
+      }
       size_t a = 0;
       while (a <= all.size()) {
         size_t b = all.find(L'\n', a);
@@ -5494,6 +5507,15 @@ static bool forwardToRunning() {
   COPYDATASTRUCT cds{0x5C1B0A01, (DWORD)((files.size() + 1) * sizeof(wchar_t)), (void*)files.c_str()};
   DWORD_PTR res = 0;
   if (!SendMessageTimeoutW(other, WM_COPYDATA, 0, (LPARAM)&cds, SMTO_ABORTIFHUNG, 5000, &res) || !res) return false;
+  // Stay alive while the files are open in the other window. A program that starts an editor (WinSCP) watches this process: when it ends, the editing is
+  // over and the temporary copy may be removed. This is what "--wait" does in other editors.
+  cds.dwData = 0x5C1B0A02;
+  for (;;) {
+    Sleep(500);
+    if (!IsWindow(other)) break;
+    DWORD_PTR open = 1;
+    if (SendMessageTimeoutW(other, WM_COPYDATA, 0, (LPARAM)&cds, SMTO_ABORTIFHUNG, 2000, &open) && !open) break;
+  }
   return true;
 }
 // a crash writes a report to crash.txt in the data folder: when, which build, what happened, and the addresses of the calls (relative to the program).
