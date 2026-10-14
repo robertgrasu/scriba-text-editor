@@ -4709,20 +4709,10 @@ static void paint() {
   if (g_uiStyle == 1 && MENU_H > TITLE_H) fillRect(0, MENU_H - 1, W, 1, t.fg, 0.1f);
   {
     // title bar: app icon, title, window buttons (the native frame is removed)
-    // the logo (Nib / Frost fade of the Scriba logos): a tile that fades from Nord grey to near black and a nib with a vertical fade, drawn on a 16 x 16 grid
+    // the logo (Nib / Polar fade of the Scriba logos): a Polar Night tile and a nib with a vertical fade, drawn on a 16 x 16 grid
     // and scaled to LOGO px, like the icons of other editors in their title bars
-    const float LOGO = 22.f, lk = LOGO / 16.f, lx = 8.f, ly = (TITLE_H - LOGO) / 2;
-    ID2D1LinearGradientBrush* tileBr = nullptr;
-    {
-      D2D1_GRADIENT_STOP ts[2] = {{0.f, Rgb(0x3b4252)}, {1.f, Rgb(0x1b2029)}};
-      ID2D1GradientStopCollection* tc = nullptr;
-      if (SUCCEEDED(g_rt->CreateGradientStopCollection(ts, 2, &tc)) && tc) {
-        g_rt->CreateLinearGradientBrush(D2D1::LinearGradientBrushProperties(D2D1::Point2F(lx, ly), D2D1::Point2F(lx + LOGO, ly + LOGO)), tc, &tileBr);
-        tc->Release();
-      }
-    }
-    if (tileBr) g_rt->FillRoundedRectangle(D2D1::RoundedRect(rc(lx, ly, LOGO, LOGO), 3.6f * lk, 3.6f * lk), tileBr);
-    else fillR(rc(lx, ly, LOGO, LOGO), 0x2b303b, 1.f, 3.6f * lk);
+    const float LOGO = 18.f, lk = LOGO / 16.f, lx = 8.f, ly = (TITLE_H - LOGO) / 2;
+    fillR(rc(lx, ly, LOGO, LOGO), 0x2e3440, 1.f, 3.6f * lk);
     if (ID2D1PathGeometry* pg = nullptr; SUCCEEDED(g_d2d->CreatePathGeometry(&pg)) && pg) {
       ID2D1GeometrySink* sk = nullptr;
       pg->Open(&sk);
@@ -4741,12 +4731,12 @@ static void paint() {
       if (gc) gc->Release();
       pg->Release();
     }
-    // the hole of the nib shows the tile
-    if (tileBr) { g_rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(lx + 8 * lk, ly + 7.2f * lk), .95f * lk, .95f * lk), tileBr); tileBr->Release(); }
+    g_br->SetColor(Rgb(0x2e3440));
+    g_rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(lx + 8 * lk, ly + 7.2f * lk), .95f * lk, .95f * lk), g_br);
     wstring ttl = d.name;
     if (g_root && !d.isNote) ttl += L" (" + g_root->name + L")";
     ttl += L" - Scriba";
-    if (!(g_uiStyle == 3 && g_zenMenu)) drawText(ttl.c_str(), (int)ttl.size(), g_uiStyle == 3 ? 76.f : 40.f, 6, t.chromeFg, g_ui, W - 76 - 3 * CAP_W, 20);
+    if (!(g_uiStyle == 3 && g_zenMenu)) drawText(ttl.c_str(), (int)ttl.size(), g_uiStyle == 3 ? 76.f : 36.f, 6, t.chromeFg, g_ui, W - 76 - 3 * CAP_W, 20);
     const wchar_t* glyphs[3] = {L"", L"", L""};
     bool zoomed = IsZoomed(g_hwnd);
     if (zoomed) glyphs[1] = L"";
