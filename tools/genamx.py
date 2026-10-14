@@ -193,6 +193,9 @@ def main():
     files = sorted(glob.glob(os.path.join(SRC, '*.sublime-color-scheme')))
     rows, pals, names = [], [], []
     def emit(name, bg, fg, caret, sel, cols, sts, invbg):
+        name = name.replace('AMXX: ', '', 1)
+        if name in ('Ayu Mirage', 'Nord', 'One Dark'): return  # the ordinary schemes of the same name stay as they are
+        name = {'Twlight': 'Twilight', 'AMXXStudio': 'Studio Light'}.get(name, name)
         dark = lum(bg) < 0.5
         win = apart(mix(bg, (0, 0, 0), 0.3), bg, 1.3) if dark else mix(bg, (0, 0, 0), 0.07)
         tabbar = apart(mix(bg, (0, 0, 0), 0.4), bg, 1.45) if dark else mix(bg, (0, 0, 0), 0.12)

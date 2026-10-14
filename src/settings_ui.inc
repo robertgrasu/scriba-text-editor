@@ -153,6 +153,9 @@ static std::string g_suFocus;  // key of the focused field ("" = none, "#hex" th
 static std::string g_suDrop;   // key of the select whose list is open
 static float g_suDropScroll = -1;  // how far the open list is scrolled (-1: show the chosen item)
 static D2D1_RECT_F g_suDropRect{0, 0, 0, 0};
+static int g_suDropSel = -1;  // the item of the open list that Enter would choose (arrow keys move it, so does the pointer)
+static bool g_suPreview = false;  // the colour scheme shown while moving through its list, not chosen yet
+static float g_suKeyMx = -1, g_suKeyMy = -1;  // where the pointer was at the last key: the pointer only takes the highlight back after it moved
 static std::string g_suColor;  // key of the colour popover
 static float g_suScroll = 0, g_suContent = 0, g_suViewH = 0;
 static vector<SuHit> g_suHits;
@@ -257,6 +260,12 @@ static void suCommitArea(const SuItem& it) {
 static const SuItem* suFind(const std::string& key) {
   for (auto& s : g_suSpec) for (auto& it : s.items) if (key == it.key) return &it;
   return nullptr;
+}
+static void suDropCancel() {  // closes the open list without choosing; a shown colour scheme goes back to the chosen one
+  bool revert = g_suPreview;
+  g_suPreview = false;
+  g_suDrop.clear();
+  if (revert) applySettingsNow(false);
 }
 static void suFocusField(const std::string& key) {
   g_suSearchFocus = false;
@@ -738,6 +747,7 @@ static void drawSettingsPage() {
           int ci = 0;
           for (int i = 0; i < n; i++) if (cur == it->opts[i]) ci = i;
           g_suDropScroll = std::max(0.f, ci * 28.f - h / 2 + 18);
+          g_suDropSel = ci;
         }
         g_suDropScroll = std::max(0.f, std::min(g_suDropScroll, maxScroll));
         fillR(D2D1::RectF(pr.left + 2, pr.top + 4, pr.right + 2, pr.bottom + 4), 0x000000, 0.3f, 6);
@@ -750,7 +760,8 @@ static void drawSettingsPage() {
           D2D1_RECT_F ir = rc(pr.left + 4, pr.top + 4 + i * 28 - g_suDropScroll, iw, 28);
           if (ir.bottom < pr.top || ir.top > pr.bottom) continue;
           bool hv = inRect(ir, g_mx, g_my) && inRect(pr, g_mx, g_my);
-          if (hv) fillR(ir, t.menuHi, 1.f, 4);
+          if (hv && (g_mx != g_suKeyMx || g_my != g_suKeyMy)) g_suDropSel = i;
+          if (i == g_suDropSel) fillR(ir, t.menuHi, 1.f, 4);
           drawText(it->opts[i], (int)wcslen(it->opts[i]), ir.left + 10, ir.top + 4, t.chromeFg, g_ui, iw - 36, 20);
           if (cur == it->opts[i]) { g_br->SetColor(Rgb(t.accent)); g_rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(ir.right - 12, ir.top + 14), 3.f, 3.f), g_br); }
           D2D1_RECT_F vis = rc(ir.left, std::max(ir.top, pr.top + 1), ir.right - ir.left, std::min(ir.bottom, pr.bottom - 1) - std::max(ir.top, pr.top + 1));
@@ -770,7 +781,7 @@ static void drawSettingsPage() {
 static void suClose() {
   g_suOpen = false;
   g_suFocus.clear();
-  g_suDrop.clear();
+  suDropCancel();
   g_suColor.clear();
   g_suCapture = -1;
   g_suChords.clear();
@@ -798,7 +809,7 @@ static void suMouse(float x, float y, int what) {  // 0 down, 1 up
   for (int i = (int)g_suHits.size() - 1; i >= 0; i--) if (inRect(g_suHits[i].r, x, y)) { hit = &g_suHits[i]; break; }
   bool popupOpen = !g_suDrop.empty() || !g_suColor.empty();
   if (popupOpen && (!hit || (hit->kind != H_DROPITEM && hit->kind != H_SWATCH && hit->kind != H_HEX && hit->kind != H_BLOCK && hit->kind != H_SELECT && hit->kind != H_COLOR && hit->kind != H_FONTARROW))) {
-    g_suDrop.clear();
+    suDropCancel();
     g_suColor.clear();
     if (g_suFocus == "#hex") g_suFocus.clear();
     redraw();
@@ -813,10 +824,11 @@ static void suMouse(float x, float y, int what) {  // 0 down, 1 up
     case H_NAV: g_suJump = fromUtf8(hit->key); break;
     case H_SWITCH: if (it) setSetting(it->key, !sBool(it->key)); break;
     case H_NUM: case H_TEXT: case H_AREA: if (it) suFocusField(hit->key); break;
-    case H_SELECT: g_suColor.clear(); g_suFocus.clear(); g_suDrop = g_suDrop == hit->key ? "" : hit->key; g_suDropScroll = -1; break;
-    case H_FONTARROW: g_suColor.clear(); g_suDrop = g_suDrop == hit->key ? "" : hit->key; g_suDropScroll = -1; break;
+    case H_SELECT: g_suColor.clear(); g_suFocus.clear(); if (g_suDrop == hit->key) suDropCancel(); else g_suDrop = hit->key; g_suDropScroll = -1; g_suDropSel = -1; break;
+    case H_FONTARROW: g_suColor.clear(); if (g_suDrop == hit->key) suDropCancel(); else g_suDrop = hit->key; g_suDropScroll = -1; g_suDropSel = -1; break;
     case H_COLOR: g_suDrop.clear(); g_suColor = g_suColor == hit->key ? "" : hit->key; g_suHex.set(suValueText(*it)); g_suFocus.clear(); break;
     case H_DROPITEM:
+      g_suPreview = false;
       if (it && hit->idx < (int)it->opts.size()) setSetting(it->key, toUtf8(it->opts[hit->idx]));
       g_suDrop.clear();
       break;
@@ -890,8 +902,56 @@ static bool suKey(WPARAM wp, bool ctrl, bool shift, bool alt) {
     redraw();
     return true;
   }
+  // an open list: Up, Down, Page Up/Down, Home, End and the first letter move through it, Enter chooses (a colour scheme is shown while moving), Esc closes
+  if (!g_suDrop.empty() && !ctrl && !alt) {
+    const SuItem* dit = suFind(g_suDrop);
+    int n = dit ? (int)dit->opts.size() : 0;
+    if (n > 0) {
+      int s = g_suDropSel < 0 ? 0 : std::min(g_suDropSel, n - 1);
+      bool nav = true;
+      switch (wp) {
+        case VK_UP: s = std::max(0, s - 1); break;
+        case VK_DOWN: s = std::min(n - 1, s + 1); break;
+        case VK_PRIOR: s = std::max(0, s - 8); break;
+        case VK_NEXT: s = std::min(n - 1, s + 8); break;
+        case VK_HOME: s = 0; break;
+        case VK_END: s = n - 1; break;
+        case VK_RETURN: {
+          g_suPreview = false;
+          std::string k = dit->key;
+          setSetting(k.c_str(), toUtf8(dit->opts[s]));
+          g_suDrop.clear();
+          redraw();
+          return true;
+        }
+        default:
+          nav = false;
+          if (wp >= 'A' && wp <= 'Z') {
+            for (int k = 1; k <= n; k++) {
+              int j = (s + k) % n;
+              if (towupper(dit->opts[j][0]) == (wchar_t)wp) { s = j; nav = true; break; }
+            }
+            if (!nav) return true;
+          }
+      }
+      if (nav) {
+        g_suDropSel = s;
+        g_suKeyMx = g_mx;
+        g_suKeyMy = g_my;
+        float itop = 4 + s * 28.f, vh = g_suDropRect.bottom - g_suDropRect.top;
+        if (itop < g_suDropScroll + 4) g_suDropScroll = std::max(0.f, itop - 4);
+        else if (itop + 32 > g_suDropScroll + vh) g_suDropScroll = itop + 32 - vh;
+        if (g_suDrop == "color_scheme") {
+          for (int i = 0; i < (int)(sizeof(THEMES) / sizeof(THEMES[0])); i++) if (wcscmp(THEMES[i].name, dit->opts[s]) == 0) { applyScheme(i); g_suPreview = true; }
+        }
+        redraw();
+        return true;
+      }
+    }
+  }
   if (wp == VK_ESCAPE) {
-    if (!g_suDrop.empty() || !g_suColor.empty()) { g_suDrop.clear(); g_suColor.clear(); g_suFocus.clear(); redraw(); return true; }
+    if (!g_suDrop.empty()) { suDropCancel(); g_suColor.clear(); g_suFocus.clear(); redraw(); return true; }
+    if (!g_suColor.empty()) { g_suColor.clear(); g_suFocus.clear(); redraw(); return true; }
     if (!g_suFocus.empty()) { g_suFocus.clear(); redraw(); return true; }
     suClose();
     return true;

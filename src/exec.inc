@@ -56,6 +56,9 @@ static void applySettingsNow(bool previewOnly) {
   static bool lastSb = true, lastMap = true;
   // colour scheme and accent
   wstring cs = sStr("color_scheme");
+  if (cs.compare(0, 6, L"AMXX: ") == 0) cs = cs.substr(6);  // the AMXX schemes used to carry this prefix
+  if (cs == L"Twlight") cs = L"Twilight";
+  if (cs == L"AMXXStudio") cs = L"Studio Light";
   int idx = 0;
   for (int i = 0; i < (int)(sizeof(THEMES) / sizeof(THEMES[0])); i++) if (cs == THEMES[i].name) idx = i;
   wstring ac = sStr("accent_color");

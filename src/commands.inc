@@ -430,7 +430,7 @@ static void buildMenus() {
       {L"Project", {"open_folder", "add_folder", "remove_folders", "refresh_folders", "-", "project_open", "project_save", "-", "reveal_sidebar", "find_in_files"}},
       {L"Preferences", {"settings", "keybindings", "-", "settings_json", "keybindings_json", "snippets_json", "-", "pick_scheme", "pick_ui"}},
       {L"Help", {"license", "about"}},
-      {L"AMX Mod X", {"amxx_compile", "amxx_goto_def", "-", "amxx_func_list", "amxx_tree", "amxx_search_all", "-", "amxx_uncompress", "amxx_lysis_decompile", "-", "amxx_pick_profile", "amxx_pick_compiler", "amxx_style", "amxx_popup_style", "amxx_console_style", "-", "amxx_hud", "amxx_new_plugin", "amxx_new_include", "-", "amxx_close_panel"}},
+      {L"AMX Mod X", {"amxx_compile", "amxx_goto_def", "-", "amxx_func_list", "amxx_tree", "amxx_search_all", "-", "amxx_uncompress", "amxx_lysis_decompile", "-", "amxx_pick_profile", "amxx_pick_compiler", "amxx_popup_style", "amxx_console_style", "-", "amxx_hud", "amxx_new_plugin", "amxx_new_include", "-", "amxx_close_panel"}},
   };
   g_menus.clear();
   for (auto& d : defs) {
