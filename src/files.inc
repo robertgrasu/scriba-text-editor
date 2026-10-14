@@ -261,7 +261,7 @@ static void newWindow() { newWindowWith(L""); }
 static void newWindowWith(const wstring& file) {
   wchar_t exe[MAX_PATH];
   GetModuleFileNameW(nullptr, exe, MAX_PATH);
-  wstring cmd = L"\"" + wstring(exe) + L"\"";
+  wstring cmd = L"\"" + wstring(exe) + L"\" --new-window";
   if (!file.empty()) cmd += L" \"" + file + L"\"";
   STARTUPINFOW si{sizeof(si)};
   PROCESS_INFORMATION pi{};

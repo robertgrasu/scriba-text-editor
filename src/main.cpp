@@ -5025,6 +5025,22 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
       else if (g_autoSave == 2) for (auto* dd : g_docs) autoSaveDoc(*dd);  // saved when the window loses the focus
       break;
     case WM_SETFOCUS: case WM_KILLFOCUS: redraw(); return 0;
+    case WM_COPYDATA: {  // a second launch with files (WinSCP, "Open with", the command line) hands them to this window
+      auto* cds = (COPYDATASTRUCT*)lp;
+      if (!cds || cds->dwData != 0x5C1B0A01 || !cds->lpData || cds->cbData < sizeof(wchar_t)) return FALSE;
+      wstring all((const wchar_t*)cds->lpData, cds->cbData / sizeof(wchar_t));
+      while (!all.empty() && all.back() == 0) all.pop_back();  // the terminator the sender added
+      size_t a = 0;
+      while (a <= all.size()) {
+        size_t b = all.find(L'\n', a);
+        if (b == wstring::npos) b = all.size();
+        if (b > a) openPath(all.substr(a, b - a));
+        a = b + 1;
+      }
+      if (IsIconic(h)) ShowWindow(h, SW_RESTORE);
+      SetForegroundWindow(h);
+      return TRUE;
+    }
     case WM_DROPFILES: {
       HDROP dr = (HDROP)wp;
       UINT n = DragQueryFileW(dr, 0xFFFFFFFF, nullptr, 0);
@@ -5454,6 +5470,32 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
   return DefWindowProcW(h, m, wp, lp);
 }
 
+// Scriba started with file names while a window of it is already open (WinSCP, "Open with"): the files go to that window as tabs and this process ends.
+// File > New Window, --new-window, --fresh and the scripted tests keep their own process.
+static bool forwardToRunning() {
+  if (GetEnvironmentVariableW(L"SCRIBA_TEST", nullptr, 0)) return false;
+  int argc = 0;
+  LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+  wstring files;
+  bool own = false;
+  for (int i = 1; i < argc; i++) {
+    if (wcscmp(argv[i], L"--new-window") == 0 || wcscmp(argv[i], L"--fresh") == 0) own = true;
+    if (wcsncmp(argv[i], L"--", 2) == 0) continue;
+    wchar_t full[MAX_PATH * 2];
+    DWORD n = GetFullPathNameW(argv[i], MAX_PATH * 2, full, nullptr);
+    if (n == 0 || n >= MAX_PATH * 2) continue;
+    files += wstring(full) + L"\n";
+  }
+  LocalFree(argv);
+  if (own || files.empty()) return false;
+  HWND other = FindWindowW(L"ScribaCppWnd", nullptr);
+  if (!other) return false;
+  AllowSetForegroundWindow(ASFW_ANY);
+  COPYDATASTRUCT cds{0x5C1B0A01, (DWORD)((files.size() + 1) * sizeof(wchar_t)), (void*)files.c_str()};
+  DWORD_PTR res = 0;
+  if (!SendMessageTimeoutW(other, WM_COPYDATA, 0, (LPARAM)&cds, SMTO_ABORTIFHUNG, 5000, &res) || !res) return false;
+  return true;
+}
 // a crash writes a report to crash.txt in the data folder: when, which build, what happened, and the addresses of the calls (relative to the program).
 // Look them up in the Scriba.map of the same build: its "Timestamp is" line must equal the "pe-timestamp" of the report.
 static wchar_t g_crashPath[MAX_PATH];
@@ -5553,6 +5595,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
   { ULONG guarantee = 96 * 1024; SetThreadStackGuarantee(&guarantee); }  // room to write the report after a stack overflow
   SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+  if (forwardToRunning()) TerminateProcess(GetCurrentProcess(), 0);  // nothing of this process is worth shutting down; ExitProcess waited on something
   claimInstance();
   D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &g_d2d);
   DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown**)&g_dw);
