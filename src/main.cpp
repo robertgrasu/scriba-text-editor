@@ -4709,8 +4709,18 @@ static void paint() {
   if (g_uiStyle == 1 && MENU_H > TITLE_H) fillRect(0, MENU_H - 1, W, 1, t.fg, 0.1f);
   {
     // title bar: app icon, title, window buttons (the native frame is removed)
-    // the logo (Nib / Nord fade of the Scriba logos): a dark tile and a nib with a vertical fade, drawn on a 16 x 16 grid
-    fillR(rc(10, 7, 16, 16), 0x232831, 1.f, 3.6f);
+    // the logo (Nib / Frost fade of the Scriba logos): a tile that fades from Nord grey to near black and a nib with a vertical fade, drawn on a 16 x 16 grid
+    ID2D1LinearGradientBrush* tileBr = nullptr;
+    {
+      D2D1_GRADIENT_STOP ts[2] = {{0.f, Rgb(0x3b4252)}, {1.f, Rgb(0x1b2029)}};
+      ID2D1GradientStopCollection* tc = nullptr;
+      if (SUCCEEDED(g_rt->CreateGradientStopCollection(ts, 2, &tc)) && tc) {
+        g_rt->CreateLinearGradientBrush(D2D1::LinearGradientBrushProperties(D2D1::Point2F(10, 7), D2D1::Point2F(26, 23)), tc, &tileBr);
+        tc->Release();
+      }
+    }
+    if (tileBr) g_rt->FillRoundedRectangle(D2D1::RoundedRect(rc(10, 7, 16, 16), 3.6f, 3.6f), tileBr);
+    else fillR(rc(10, 7, 16, 16), 0x2b303b, 1.f, 3.6f);
     if (ID2D1PathGeometry* pg = nullptr; SUCCEEDED(g_d2d->CreatePathGeometry(&pg)) && pg) {
       ID2D1GeometrySink* sk = nullptr;
       pg->Open(&sk);
@@ -4729,8 +4739,8 @@ static void paint() {
       if (gc) gc->Release();
       pg->Release();
     }
-    g_br->SetColor(Rgb(0x232831));
-    g_rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(10 + 8, 7 + 7.2f), .95f, .95f), g_br);
+    // the hole of the nib shows the tile
+    if (tileBr) { g_rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(10 + 8, 7 + 7.2f), .95f, .95f), tileBr); tileBr->Release(); }
     wstring ttl = d.name;
     if (g_root && !d.isNote) ttl += L" (" + g_root->name + L")";
     ttl += L" - Scriba";
