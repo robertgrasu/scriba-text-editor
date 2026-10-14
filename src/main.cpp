@@ -1091,8 +1091,8 @@ static float gutterW() {
   if (!g_gutterOn) return 8;
   if (!g_docs.empty() && D().vis && !g_vLines) return 24;
   if (!g_lineNums && !(!g_docs.empty() && D().vis)) return 34;
-  int digits = 2;
-  for (size_t n = D().lines.size(); n >= 100; n /= 10) digits++;
+  int digits = 4;  // the same width for every file up to 9999 lines, so the text does not shift when the tab changes
+  for (size_t n = D().lines.size(); n >= 10000; n /= 10) digits++;
   return std::ceil(digits * g_charW) + 34;  // measured on docs/screenshots/editor.png of the Electron edition: text starts 57 px from the pane edge
 }
 static float textX() { return L0() + gutterW() + 6; }
