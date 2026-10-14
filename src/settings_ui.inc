@@ -64,7 +64,7 @@ static void suInitSpec() {
       {L"Claude Code", {
           {"claude_path", L"Claude Code program", L"Leave empty to find \u201Cclaude\u201D on the PATH, in the usual install folders or inside the VS Code extension. Ctrl+Alt+J opens the chat panel; sign in to Claude Code once from a terminal or VS Code.", SU_TEXT, {}},
           {"claude_permission_mode", L"What Claude may do", L"Edit files = changes files without asking; Plan only = only proposes a plan; Read only = no changes; Everything = also runs any command (use with care).", SU_SELECT, {L"acceptEdits", L"auto", L"plan", L"dontAsk", L"bypassPermissions"}},
-          {"claude_model", L"Model", L"Empty = the default of your Claude Code. Or a name such as sonnet, opus or a full model id.", SU_TEXT, {}},
+          {"claude_model", L"Model", L"Sonnet by default. Empty = the default of your Claude Code. Or a name such as opus, haiku or a full model id.", SU_TEXT, {}},
           {"claude_allowed_tools", L"Allowed tools", L"Commands Claude may run without asking, one per line, e.g. Bash(npm test) or Bash(git status).", SU_LIST, {}},
       }},
       {L"AMX Mod X", {
