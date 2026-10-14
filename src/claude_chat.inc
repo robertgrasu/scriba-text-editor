@@ -618,6 +618,7 @@ static void ccSend(CcChat* c, wstring text, bool noContext = false) {
       if (!ccAlive(c) || c->convId != cid) return;
       bool ok = clWrite(c->convId, {{"type", "user"}, {"message", {{"role", "user"}, {"content", content}}}, {"parent_tool_use_id", nullptr}});
       if (!ok) {
+        logLine(L"claude: could not send the message to the process");
         ccAdd(c, CB_FAIL, L"Could not send the message to Claude Code.");
         delete c->current;
         c->current = nullptr;
@@ -920,6 +921,7 @@ static void ccOnEvent(CcChat* c, const json& ev) {
             L"To trust it, use Tools > Claude Code: Trust This Folder (then start a new conversation), or run claude once in this folder from a terminal and accept the question.");
       return;
     }
+    logLine(L"claude stderr: " + t.substr(0, 400));
     ccAdd(c, CB_WARN, t.substr(0, 600));
     return;
   }
@@ -1203,6 +1205,6 @@ static void ccTrustFolder() {
   DWORD wr = 0;
   bool ok = h != INVALID_HANDLE_VALUE && WriteFile(h, out.data(), (DWORD)out.size(), &wr, nullptr) && wr == out.size();
   if (h != INVALID_HANDLE_VALUE) CloseHandle(h);
-  if (!ok || !MoveFileExW(tmp.c_str(), cfg.c_str(), MOVEFILE_REPLACE_EXISTING)) { DeleteFileW(tmp.c_str()); flash(L"Could not write ~/.claude.json"); return; }
+  if (!ok || !MoveFileExW(tmp.c_str(), cfg.c_str(), MOVEFILE_REPLACE_EXISTING)) { DeleteFileW(tmp.c_str()); logLine(L"could not write " + cfg); flash(L"Could not write ~/.claude.json"); return; }
   flash(L"Folder trusted. Start a new Claude conversation for it to apply.");
 }

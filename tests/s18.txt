@@ -23,7 +23,7 @@ pick Grouped by color
 click 172,104
 wait 200
 shot m4
-pick Title A–Z
+pick Title A-Z
 click 200,104
 wait 200
 click 100,215

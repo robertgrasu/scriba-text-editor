@@ -175,7 +175,7 @@ static LspServer* lspStartServer(const wstring& syntax, const wstring& path, con
   CloseHandle(outW);
   CloseHandle(errW);
   if (g_testing) testLog(L"lsp: CreateProcess " + std::to_wstring(ok) + L" err " + std::to_wstring(GetLastError()) + L" cmd " + cmd);
-  if (!ok) { CloseHandle(inW); CloseHandle(outR); CloseHandle(errR); g_lspMissing.insert(missKey); return nullptr; }
+  if (!ok) { logLine(L"language server did not start (windows error " + std::to_wstring(GetLastError()) + L"): " + cmd); CloseHandle(inW); CloseHandle(outR); CloseHandle(errR); g_lspMissing.insert(missKey); return nullptr; }
   auto* s = new LspServer();
   s->key = key;
   s->command = cfg.command;

@@ -24,8 +24,12 @@
 #include <unordered_set>
 #include <vector>
 #include <deque>
+#include <exception>
+#include <csignal>
+#include <cstdlib>
 
 using std::wstring;
+static void logLine(const wstring& s);  // the problem log in the data folder
 using std::vector;
 
 /* ---------------------------------------------------------------- themes */
@@ -1426,7 +1430,7 @@ static void openPath(const wstring& p) {
   for (size_t i = 0; i < g_docs.size(); i++)
     if (!g_docs[i]->path.empty() && _wcsicmp(g_docs[i]->path.c_str(), p.c_str()) == 0) { activateDoc((int)i); return; }
   Doc* d = new Doc();
-  if (!loadFile(p, *d)) { delete d; appMsgBox(g_hwnd, (L"Cannot open " + p).c_str(), L"Scriba", MB_ICONERROR); return; }
+  if (!loadFile(p, *d)) { logLine(L"could not open " + p + L" (windows error " + std::to_wstring(GetLastError()) + L")"); delete d; appMsgBox(g_hwnd, (L"Cannot open " + p).c_str(), L"Scriba", MB_ICONERROR); return; }
   if (g_docs.size() == 1 && g_docs[0]->path.empty() && !g_docs[0]->dirty && g_docs[0]->lines.size() == 1 && g_docs[0]->lines[0].empty()) {
     delete g_docs[0];
     g_docs.clear();
@@ -1477,7 +1481,7 @@ static bool doSave(Doc& d) {
   if (d.isNote) { d.dirty = true; flushNote(d); return !d.dirty; }
   if (d.path.empty()) return doSaveAs(d);
   prepareForSave(d);
-  if (!saveFile(d, d.path)) { appMsgBox(g_hwnd, L"Could not save the file.", L"Scriba", MB_ICONERROR); return false; }
+  if (!saveFile(d, d.path)) { logLine(L"could not save " + d.path + L" (windows error " + std::to_wstring(GetLastError()) + L")"); appMsgBox(g_hwnd, L"Could not save the file.", L"Scriba", MB_ICONERROR); return false; }
   afterSave(d);
   return true;
 }
@@ -2938,6 +2942,30 @@ static wstring dataDir() {
   r += L"\\scriba-cpp";
   CreateDirectoryW(r.c_str(), nullptr);
   return r;
+}
+
+// scriba.log in the data folder: one line per problem worth knowing about (a save that failed, a program that did not start, ...); it starts a new file at 1 MB
+static SRWLOCK g_logLock = SRWLOCK_INIT;
+static void logLine(const wstring& s) {
+  wstring dir = dataDir(), path = dir + L"\\scriba.log";
+  AcquireSRWLockExclusive(&g_logLock);
+  WIN32_FILE_ATTRIBUTE_DATA fa;
+  if (GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &fa) && fa.nFileSizeLow > 1000000) MoveFileExW(path.c_str(), (path + L".old").c_str(), MOVEFILE_REPLACE_EXISTING);
+  HANDLE h = CreateFileW(path.c_str(), FILE_APPEND_DATA, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, 0, nullptr);
+  if (h != INVALID_HANDLE_VALUE) {
+    SYSTEMTIME t;
+    GetLocalTime(&t);
+    wchar_t stamp[40];
+    swprintf_s(stamp, L"%04d-%02d-%02d %02d:%02d:%02d  ", t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond);
+    wstring line = wstring(stamp) + s + L"\n";
+    int n = WideCharToMultiByte(CP_UTF8, 0, line.c_str(), (int)line.size(), nullptr, 0, nullptr, nullptr);
+    vector<char> b(n + 1);
+    WideCharToMultiByte(CP_UTF8, 0, line.c_str(), (int)line.size(), b.data(), n, nullptr, nullptr);
+    DWORD wr;
+    WriteFile(h, b.data(), (DWORD)n, &wr, nullptr);
+    CloseHandle(h);
+  }
+  ReleaseSRWLockExclusive(&g_logLock);
 }
 static bool writeDocTo(Doc& d, const wstring& path) {
   wstring w;
@@ -5426,26 +5454,103 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
   return DefWindowProcW(h, m, wp, lp);
 }
 
-// a crash writes its address (relative to the program, to look up in Scriba.map) next to the data folder
-static LONG WINAPI crashHandler(EXCEPTION_POINTERS* ep) {
-  wstring path = dataDir() + L"\\crash.txt";
-  HANDLE h = CreateFileW(path.c_str(), FILE_APPEND_DATA, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, 0, nullptr);
-  if (h != INVALID_HANDLE_VALUE) {
-    char buf[2048];
-    ULONG_PTR base = (ULONG_PTR)GetModuleHandleW(nullptr);
-    int n = snprintf(buf, sizeof(buf), "crash code %08lx at rva %llx\n", ep->ExceptionRecord->ExceptionCode, (unsigned long long)((ULONG_PTR)ep->ExceptionRecord->ExceptionAddress - base));
-    void* frames[32];
-    USHORT cnt = CaptureStackBackTrace(0, 32, frames, nullptr);
-    for (USHORT i = 0; i < cnt && n < 1900; i++) n += snprintf(buf + n, sizeof(buf) - n, "  frame %u rva %llx\n", i, (unsigned long long)((ULONG_PTR)frames[i] - base));
-    DWORD wr;
-    WriteFile(h, buf, n, &wr, nullptr);
-    CloseHandle(h);
+// a crash writes a report to crash.txt in the data folder: when, which build, what happened, and the addresses of the calls (relative to the program).
+// Look them up in the Scriba.map of the same build: its "Timestamp is" line must equal the "pe-timestamp" of the report.
+static wchar_t g_crashPath[MAX_PATH];
+static const char* exceptionName(DWORD c) {
+  switch (c) {
+    case EXCEPTION_ACCESS_VIOLATION: return "access violation";
+    case EXCEPTION_STACK_OVERFLOW: return "stack overflow";
+    case EXCEPTION_INT_DIVIDE_BY_ZERO: return "divide by zero";
+    case EXCEPTION_ILLEGAL_INSTRUCTION: return "illegal instruction";
+    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED: return "array bounds exceeded";
+    case EXCEPTION_IN_PAGE_ERROR: return "page error";
+    case 0xC0000374: return "heap corruption";
+    case 0xC0000409: return "fast fail";
+    case 0xE06D7363: return "unhandled C++ exception";
   }
+  return "";
+}
+// no heap use in here: the heap may be what is broken
+static void writeCrashReport(const char* what, DWORD code, void* addr, const EXCEPTION_POINTERS* ep) {
+  if (!g_crashPath[0]) return;
+  HANDLE h = CreateFileW(g_crashPath, FILE_APPEND_DATA, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, 0, nullptr);
+  if (h == INVALID_HANDLE_VALUE) return;
+  char buf[3072], exe[MAX_PATH];
+  SYSTEMTIME t;
+  GetLocalTime(&t);
+  GetModuleFileNameA(nullptr, exe, MAX_PATH);
+  ULONG_PTR base = (ULONG_PTR)GetModuleHandleW(nullptr);
+  DWORD pe = ((IMAGE_NT_HEADERS*)(base + ((IMAGE_DOS_HEADER*)base)->e_lfanew))->FileHeader.TimeDateStamp;
+  int n = snprintf(buf, sizeof(buf), "=== %04d-%02d-%02d %02d:%02d:%02d  %s\nbuild %s %s  pe-timestamp %08lx  %s\n", t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond, what, __DATE__, __TIME__, pe, exe);
+  if (addr) n += snprintf(buf + n, sizeof(buf) - n, "code %08lx %s at rva %llx\n", code, exceptionName(code), (unsigned long long)((ULONG_PTR)addr - base));
+  if (ep && code == EXCEPTION_ACCESS_VIOLATION && ep->ExceptionRecord->NumberParameters >= 2)
+    n += snprintf(buf + n, sizeof(buf) - n, "%s address %llx\n", ep->ExceptionRecord->ExceptionInformation[0] == 0 ? "read of" : ep->ExceptionRecord->ExceptionInformation[0] == 1 ? "write to" : "execute at",
+                  (unsigned long long)ep->ExceptionRecord->ExceptionInformation[1]);
+  void* frames[32];
+  USHORT cnt = CaptureStackBackTrace(1, 32, frames, nullptr);
+  DWORD imageSize = ((IMAGE_NT_HEADERS*)(base + ((IMAGE_DOS_HEADER*)base)->e_lfanew))->OptionalHeader.SizeOfImage;
+  for (USHORT i = 0; i < cnt && n < 2900; i++) {
+    ULONG_PTR a = (ULONG_PTR)frames[i];
+    if (a >= base && a < base + imageSize) n += snprintf(buf + n, sizeof(buf) - n, "  frame %u rva %llx\n", i, (unsigned long long)(a - base));
+    else n += snprintf(buf + n, sizeof(buf) - n, "  frame %u (windows or a library)\n", i);
+  }
+  DWORD wr;
+  WriteFile(h, buf, n, &wr, nullptr);
+  CloseHandle(h);
+}
+static LONG WINAPI crashHandler(EXCEPTION_POINTERS* ep) {
+  writeCrashReport("unhandled exception", ep->ExceptionRecord->ExceptionCode, ep->ExceptionRecord->ExceptionAddress, ep);
   return EXCEPTION_CONTINUE_SEARCH;
 }
+// the other ways a program stops without an exception reaching the filter
+static void terminateHandler() {
+  char what[300] = "std::terminate";
+  try {
+    if (auto e = std::current_exception()) std::rethrow_exception(e);
+  } catch (const std::exception& ex) { snprintf(what, sizeof(what), "std::terminate: %.250s", ex.what()); }
+  catch (...) { snprintf(what, sizeof(what), "std::terminate: an exception that is not a std::exception"); }
+  writeCrashReport(what, 0, nullptr, nullptr);
+  TerminateProcess(GetCurrentProcess(), 3);
+}
+static void abortHandler(int) { writeCrashReport("abort()", 0, nullptr, nullptr); TerminateProcess(GetCurrentProcess(), 3); }
+static void invalidParamHandler(const wchar_t*, const wchar_t*, const wchar_t*, unsigned, uintptr_t) { writeCrashReport("invalid parameter passed to the C runtime", 0, nullptr, nullptr); TerminateProcess(GetCurrentProcess(), 3); }
+// one file running-<pid>.txt per running program: one that is still there while its process is gone means that run ended without closing (crash, kill, power)
+static wstring g_runMarker;
+static void markRunning() {
+  wstring dir = dataDir();
+  WIN32_FIND_DATAW fd;
+  HANDLE f = FindFirstFileW((dir + L"\\running-*.txt").c_str(), &fd);
+  if (f != INVALID_HANDLE_VALUE) {
+    do {
+      DWORD pid = (DWORD)_wtoi(fd.cFileName + 8);
+      HANDLE p = pid ? OpenProcess(SYNCHRONIZE, FALSE, pid) : nullptr;
+      bool alive = p && WaitForSingleObject(p, 0) == WAIT_TIMEOUT;
+      if (p) CloseHandle(p);
+      if (alive) continue;
+      logLine(L"the previous run (process " + std::to_wstring(pid) + L") did not end normally; see crash.txt");
+      DeleteFileW((dir + L"\\" + fd.cFileName).c_str());
+    } while (FindNextFileW(f, &fd));
+    FindClose(f);
+  }
+  g_runMarker = dir + L"\\running-" + std::to_wstring(GetCurrentProcessId()) + L".txt";
+  HANDLE h = CreateFileW(g_runMarker.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if (h != INVALID_HANDLE_VALUE) CloseHandle(h);
+}
+#define SCRIBA_WIDE2(x) L##x
+#define SCRIBA_WIDE(x) SCRIBA_WIDE2(x)
 
 int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
+  {
+    wstring cp = dataDir() + L"\\crash.txt";
+    wcsncpy_s(g_crashPath, cp.c_str(), _TRUNCATE);
+  }
   SetUnhandledExceptionFilter(crashHandler);
+  std::set_terminate(terminateHandler);
+  signal(SIGABRT, abortHandler);
+  _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+  _set_invalid_parameter_handler(invalidParamHandler);
+  { ULONG guarantee = 96 * 1024; SetThreadStackGuarantee(&guarantee); }  // room to write the report after a stack overflow
   SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
   claimInstance();
@@ -5512,6 +5617,8 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
     SetWindowPos(g_hwnd, HWND_BOTTOM, -3000, 40, 1300, 840, SWP_NOACTIVATE | SWP_SHOWWINDOW);
   } else ShowWindow(g_hwnd, show);
   caretReset();
+  markRunning();
+  logLine(L"start, build " SCRIBA_WIDE(__DATE__) L" " SCRIBA_WIDE(__TIME__));
   licInit();
   if (g_ccOpen && !g_testing) { g_ccOpen = false; ccShow(); }
   g_ccOpen = g_ccOpen && !g_testing;
@@ -5521,5 +5628,6 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
     TranslateMessage(&msg);
     DispatchMessageW(&msg);
   }
+  if (!g_runMarker.empty()) DeleteFileW(g_runMarker.c_str());
   return 0;
 }

@@ -175,6 +175,7 @@ static bool clOpen(const ClOpen& o, wstring& err) {
     CloseHandle(outR);
     CloseHandle(errR);
     err = L"Could not start " + exe;
+    logLine(err + L" (windows error " + std::to_wstring(GetLastError()) + L")");
     return false;
   }
   auto* pr = new ClProc();

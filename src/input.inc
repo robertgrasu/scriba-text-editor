@@ -245,6 +245,12 @@ static void testTick() {
     else if (op == L"amxpick") g_testAmxPick = arg;
     else if (op == L"licstate") testLog(L"lic: state=" + std::to_wstring(g_lic.state) + L" locked=" + std::to_wstring(licLocked() ? 1 : 0));
     else if (op == L"tsall") { for (size_t i = 0; i < sizeof(TS_LANGS) / sizeof(TS_LANGS[0]); i++) tsLoad((int)i); testLog(L"ts: " + (g_tsLog.empty() ? wstring(L"all queries loaded") : g_tsLog)); }
+    else if (op == L"crash") {  // crash av|terminate|abort|stack: to see the report that is written
+      if (arg == L"av") *(volatile int*)nullptr = 1;
+      else if (arg == L"terminate") { try { throw std::runtime_error("test exception"); } catch (...) { std::terminate(); } }
+      else if (arg == L"abort") abort();
+      else { struct R { static int f(int n) { volatile char pad[4096]; pad[0] = (char)n; return f(n + 1) + pad[0]; } }; R::f(0); }
+    }
     else if (op == L"pick") g_ctxTestPick = arg;  // the next popup menu (notes view buttons) chooses this item
     else if (op == L"modal") {  // modal Yes|No|Cancel|OK: the next message box is answered without being shown
       g_modalAuto.push_back(arg == L"Yes" ? IDYES : arg == L"No" ? IDNO : arg == L"Cancel" ? IDCANCEL : IDOK);
