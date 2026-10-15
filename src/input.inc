@@ -18,6 +18,22 @@ static bool onKey(WPARAM wp, bool ctrl, bool shift, bool alt, bool sysKey) {
     if (ctrl && shift && !alt && wp == 'P' && g_suCapture < 0) { openPalette(L">"); return true; }
     return suKey(wp, ctrl, shift, alt);
   }
+  if (g_sbFindFocus) {  // the file-name search of the side bar
+    if (wp == VK_ESCAPE) { g_sbFind = false; g_sbFindFocus = false; redraw(); return true; }
+    if (wp == VK_RETURN) { sbFindOpenResult(g_sbFindSel); redraw(); return true; }
+    if (wp == VK_UP || wp == VK_DOWN) {
+      int n = (int)g_sbFindRes.size();
+      if (n) { g_sbFindSel = std::max(0, std::min(n - 1, g_sbFindSel + (wp == VK_UP ? -1 : 1))); sbFindEnsure(); }
+      redraw();
+      return true;
+    }
+    if (!(ctrl && wp != 'A' && wp != 'C' && wp != 'X' && wp != 'V')) {
+      if (editKey(g_sbFindQ, wp, ctrl, shift)) sbFindUpdate();
+      caretReset();
+      redraw();
+      return true;
+    }
+  }
   if (g_nqFocus) {
     if (wp == VK_RETURN) { g_nqFocus = false; notesOpenFirst(); redraw(); return true; }
     if (wp == VK_ESCAPE) { g_nqFocus = false; notesClearSearch(); redraw(); return true; }
@@ -74,7 +90,7 @@ static bool onKey(WPARAM wp, bool ctrl, bool shift, bool alt, bool sysKey) {
 }
 static void onChar(wchar_t c) {
   if (g_modal.open) return;
-  if (c >= 32 && c != 127 && !g_palOpen && !g_suOpen && !g_hudOpen && !g_licOpen && !g_findFocus && !g_panelFocus && !g_nqFocus && !g_ccFocusInput && imageLineActive(D())) imageLineEscape(D());
+  if (c >= 32 && c != 127 && !g_palOpen && !g_suOpen && !g_hudOpen && !g_licOpen && !g_findFocus && !g_panelFocus && !g_nqFocus && !g_sbFindFocus && !g_ccFocusInput && imageLineActive(D())) imageLineEscape(D());
   static wchar_t hi = 0;
   if (c < 32 || c == 127) return;
   if (g_licOpen) { licChar(c); return; }
@@ -82,6 +98,7 @@ static void onChar(wchar_t c) {
   if (g_hudOpen) { hudChar(c); return; }
   if (g_suOpen) { suChar(c); return; }
   if (g_panelFocus && panelsChar(c)) return;
+  if (g_sbFindFocus) { g_sbFindQ.insert(wstring(1, c)); sbFindUpdate(); caretReset(); redraw(); return; }
   if (g_nqFocus) { g_nq.insert(wstring(1, c)); g_nbScroll = 0; refreshNotes(); caretReset(); redraw(); return; }
   if (ccChar(c)) return;
   if (findChar(c)) return;

@@ -2393,6 +2393,42 @@ static void clearRoots() {
   g_projScanned = false;
   g_sbScroll = 0;
 }
+
+// the file-name search of the side bar: the magnifier next to FOLDERS opens a field; the files of the open folders that match are listed instead of the tree
+static bool g_sbFind = false, g_sbFindFocus = false;
+static LineEdit g_sbFindQ;
+static vector<int> g_sbFindRes;  // indexes into g_projFiles, best match first
+static int g_sbFindSel = 0;
+static float g_sbFindScroll = 0;
+static const float SBF_ROW = 36;
+static int fuzzy(const wstring& hay, const wstring& q);
+static wstring sbBaseName(const wstring& p) { size_t k = p.find_last_of(L"\\/"); return k == wstring::npos ? p : p.substr(k + 1); }
+static void sbFindUpdate() {
+  g_sbFindRes.clear();
+  g_sbFindSel = 0;
+  g_sbFindScroll = 0;
+  if (g_sbFindQ.t.empty()) return;
+  if (!g_projScanned) scanProject();
+  vector<std::pair<int, int>> sc;
+  for (size_t i = 0; i < g_projFiles.size(); i++) {
+    int s = fuzzy(sbBaseName(g_projFiles[i]), g_sbFindQ.t);
+    if (s >= 0) s += 200;  // a match in the file name beats one spread over the path
+    else { s = fuzzy(g_projFiles[i], g_sbFindQ.t); if (s < 0) continue; }
+    sc.push_back({s, (int)i});
+  }
+  std::stable_sort(sc.begin(), sc.end(), [](const std::pair<int, int>& a, const std::pair<int, int>& b) { return a.first > b.first; });
+  for (size_t i = 0; i < sc.size() && i < 300; i++) g_sbFindRes.push_back(sc[i].second);
+}
+static void sbFindOpen(bool on) {
+  g_sbFind = on;
+  g_sbFindFocus = on;
+  if (on) { g_sbFindQ.set(L""); sbFindUpdate(); caretReset(); }
+}
+static void sbFindOpenResult(int i) {
+  if (i < 0 || i >= (int)g_sbFindRes.size()) return;
+  int pi = g_sbFindRes[i];
+  if (pi >= 0 && pi < (int)g_projAbs.size()) openPath(g_projAbs[pi]);
+}
 static void addRoot(const wstring& path) {
   if (path.empty()) return;
   for (auto* r : g_roots) if (_wcsicmp(r->path.c_str(), path.c_str()) == 0) return;
@@ -2441,6 +2477,13 @@ static void flatten(FNode* n, int depth, vector<SbRow>& out) {
 static bool sBool(const char* k);  // settings.inc
 static bool sbPillsShown() { return sBool("sidebar_tabs") || g_sbView == 1; }  // the Files / Notes / Outline switch (the notes list always has it)
 #define SB_HEAD (sbPillsShown() ? 67.f : 34.f)
+static float sbFindViewH() { return ch() - STATUS_H - MENU_H - SB_HEAD - 34; }
+static void sbFindEnsure() {
+  float y = g_sbFindSel * SBF_ROW, vh = sbFindViewH();
+  if (y < g_sbFindScroll) g_sbFindScroll = y;
+  else if (y + SBF_ROW > g_sbFindScroll + vh) g_sbFindScroll = y + SBF_ROW - vh;
+}
+static D2D1_RECT_F sbSearchBtn() { return rc(g_sbW - 32, MENU_H + (sbPillsShown() ? 40.f : 6.f), 24, 24); }
 static const float SB_ROW = 22, NOTE_TOP = 112;
 static int g_noteMode = 0;  // notes list: 0 list with previews, 1 compact titles, 2 grouped by tag, 3 grouped by colour
 static int g_noteSort = 0;  // 0 newest first, 1 oldest first, 2 title A-Z, 3 date created
@@ -2531,6 +2574,39 @@ static void drawSidebar() {
     return;
   }
   drawText(L"FOLDERS", 7, 12, top + (sbPillsShown() ? 44.f : 10.f), mixc(t.sidebar, t.fg, 0.45f), g_uiSmall, 150, 18);
+  if (g_root) {  // the magnifier: search the files of the open folders by name
+    D2D1_RECT_F mb = sbSearchBtn();
+    bool hv = inRect(mb, g_mx, g_my);
+    if (g_sbFind || hv) fillR(mb, sbHi(), g_sbFind ? 1.f : 0.7f, 5);
+    DWORD ic = g_sbFind || hv ? t.fg : mixc(t.sidebar, t.fg, 0.55f);
+    g_br->SetColor(Rgb(ic));
+    float cx = mb.left + 10.5f, cy = mb.top + 10.5f;
+    g_rt->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), 4.6f, 4.6f), g_br, 1.4f);
+    g_rt->DrawLine(D2D1::Point2F(cx + 3.4f, cy + 3.4f), D2D1::Point2F(cx + 7.2f, cy + 7.2f), g_br, 1.6f);
+  }
+  if (g_root && g_sbFind) {
+    float y0 = top + SB_HEAD;
+    D2D1_RECT_F ir = rc(8, y0, w - 16, 28);
+    drawInput(g_sbFindQ, ir, g_sbFindFocus, L"Search files by name");
+    g_rt->PushAxisAlignedClip(D2D1::RectF(0, y0 + 34, w - 1, top + h), D2D1_ANTIALIAS_MODE_ALIASED);
+    if (g_sbFindQ.t.empty()) drawText(L"Type part of a file name.", 25, 14, y0 + 46, sbFg(), g_uiSmall, w - 24, 20);
+    else if (g_sbFindRes.empty()) drawText(L"No file matches.", 16, 14, y0 + 46, sbFg(), g_uiSmall, w - 24, 20);
+    float vh = sbFindViewH(), total = g_sbFindRes.size() * SBF_ROW;
+    g_sbFindScroll = std::max(0.f, std::min(g_sbFindScroll, std::max(0.f, total - vh)));
+    for (size_t i = 0; i < g_sbFindRes.size(); i++) {
+      float y = y0 + 34 + i * SBF_ROW - g_sbFindScroll;
+      if (y + SBF_ROW < y0 + 34 || y > top + h) continue;
+      const wstring& rel = g_projFiles[g_sbFindRes[i]];
+      wstring nm = sbBaseName(rel), dir = rel.size() > nm.size() ? rel.substr(0, rel.size() - nm.size() - 1) : L"";
+      bool hov = g_my >= y && g_my < y + SBF_ROW && g_mx < w;
+      if ((int)i == g_sbFindSel) fillR(rc(6, y, w - 12, SBF_ROW - 2), sbHi(), 1.f, 6);
+      else if (hov) fillR(rc(6, y, w - 12, SBF_ROW - 2), sbHi(), 0.6f, 6);
+      drawText(nm.c_str(), (int)nm.size(), 14, y + 2, t.fg, g_ui, w - 28, 20);
+      if (!dir.empty()) drawText(dir.c_str(), (int)dir.size(), 14, y + 18, mixc(t.sidebar, t.fg, 0.42f), g_uiSmall, w - 28, 16);
+    }
+    g_rt->PopAxisAlignedClip();
+    return;
+  }
   if (!g_root) {
     // the message wraps inside the sidebar; the button sits under it, its label centred
     IDWriteTextLayout* lay = nullptr;
@@ -2620,6 +2696,23 @@ static bool sidebarMouse(float x, float y, int button) {
   if (!g_root) {
     float bw = 150, bx = (g_sbW - bw) / 2, by = MENU_H + 70;
     if (x >= bx && x < bx + bw && y >= by && y < by + 32) exec(C_OPENFOLDER);
+    return true;
+  }
+  if (inRect(sbSearchBtn(), x, y)) { sbFindOpen(!g_sbFind); redraw(); return true; }
+  if (g_sbFind) {  // the field and the list of matches
+    float y0 = MENU_H + SB_HEAD;
+    if (y >= y0 && y < y0 + 30) {
+      g_sbFindFocus = true;
+      float rel = x - 17;
+      int best = (int)g_sbFindQ.t.size();
+      for (int i = 0; i <= (int)g_sbFindQ.t.size(); i++) if (textWidth(g_sbFindQ.t.substr(0, i), g_ui) >= rel) { best = i; break; }
+      g_sbFindQ.c = g_sbFindQ.a = best;
+      caretReset();
+    } else if (y >= y0 + 34) {
+      int i = (int)std::floor((y - y0 - 34 + g_sbFindScroll) / SBF_ROW);
+      if (i >= 0 && i < (int)g_sbFindRes.size()) { g_sbFindSel = i; sbFindOpenResult(i); }
+    }
+    redraw();
     return true;
   }
   if (y < MENU_H + SB_HEAD) return true;
@@ -3554,6 +3647,7 @@ static void openPrompt(const wstring& title, const wstring& initial, std::functi
 static bool sbExtraMouse(float x, float y) {
   float top = MENU_H;
   g_nqFocus = false;
+  g_sbFindFocus = false;
   for (int i = 0; i < 3 && sbPillsShown(); i++) {
     D2D1_RECT_F pr = sbPill(i);
     if (inRect(pr, x, y)) {
@@ -3573,6 +3667,7 @@ static bool sbExtraMouse(float x, float y) {
   }
   if (g_sbView != 1) {
     if (!g_root && inRect(openFolderBtnRect(g_openBtnY), x, y)) { exec(C_OPENFOLDER); return true; }
+    if (g_root && g_sbView == 0 && inRect(sbSearchBtn(), x, y)) return false;  // the magnifier is handled by the caller
     return y < top + SB_HEAD ? true : false;
   }
   return notesMouse(x, y);
@@ -5119,6 +5214,8 @@ static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             g_nbScroll = std::max(0.f, std::min(notesMaxScroll(), g_nbScroll - delta / 120.f * 120.f));
           } else if (g_sbView == 2) {
             g_olScroll = std::max(0.f, g_olScroll - delta / 120.f * 72.f);  // clamped when drawn
+          } else if (g_sbFind && g_root) {
+            g_sbFindScroll = std::max(0.f, g_sbFindScroll - delta / 120.f * 3 * SBF_ROW);  // clamped when drawn
           } else {
             g_sbScroll = std::max(0.f, std::min(std::max(0.f, sbContentH() - (ch() - MENU_H - STATUS_H - SB_HEAD)), g_sbScroll - delta / 120.f * 3 * SB_ROW));
           }

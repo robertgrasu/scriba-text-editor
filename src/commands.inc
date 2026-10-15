@@ -29,6 +29,7 @@
   X(SBFILES, "sb_files", L"View: Side Bar: Files", L"Ctrl+K Ctrl+E", 0) \
   X(SBNOTES, "sb_notes", L"View: Side Bar: Notes", L"Ctrl+K Ctrl+N", 0) \
   X(SBOUTLINE, "sb_outline", L"View: Side Bar: Outline", L"Ctrl+K Ctrl+O", 0) \
+  X(SBFIND, "sb_find", L"View: Side Bar: Search Files", L"", 0) \
   X(FINDUNDER, "find_under", L"Find: Find Under", L"Ctrl+F3", 0) \
   X(FINDUNDERPREV, "find_under_prev", L"Find: Find Under Previous", L"Ctrl+Shift+F3", 0) \
   X(REPLACENEXT, "replace_next", L"Find: Replace Next", L"Ctrl+Shift+H", 0) \

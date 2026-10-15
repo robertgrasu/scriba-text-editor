@@ -379,6 +379,7 @@ static void exec(int cmd) {
   Doc& d = D();
   switch (cmd) {
     case C_LICENSE: licOpen(); break;
+    case C_SBFIND: if (!g_root) { flash(L"Open a folder first"); break; } g_sbVisible = true; g_sbView = 0; sbFindOpen(true); computeLayout(); redraw(); break;
     case C_CLAUDETRUST: ccTrustFolder(); break;
     case C_FINDUNDER: cmdFindUnder(1); break;
     case C_FINDUNDERPREV: cmdFindUnder(-1); break;
