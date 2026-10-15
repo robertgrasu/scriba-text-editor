@@ -69,7 +69,7 @@ static json settingsDefaults() {
       {"spell_check", true}, {"git_integration", true}, {"lsp_enabled", true}, {"lsp_servers", json::object()}, {"auto_save", "off"},
       {"auto_save_delay", 2}, {"claude_path", ""}, {"claude_permission_mode", "acceptEdits"}, {"claude_model", "sonnet"},
       {"claude_allowed_tools", json::array()}, {"amxx_compiler_path", ""}, {"amxx_include_dir", ""}, {"amxx_output_dir", ""},
-      {"amxx_debug_level", 2}, {"amxx_profiles", json::object()}, {"amxx_profile", ""}, {"amxx_check_invalid", true}, {"amxx_build_version", true}, {"license_server", "http://127.0.0.1:5057"}, {"license_buy_url", ""}, {"amxx_popup_style", "Default"}, {"amxx_console_style", "Default"},
+      {"amxx_debug_level", 2}, {"amxx_profiles", json::object()}, {"amxx_profile", ""}, {"amxx_check_invalid", true}, {"amxx_build_version", true}, {"license_server", "https://lic.rgsoft.ro"}, {"license_buy_url", ""}, {"amxx_popup_style", "Default"}, {"amxx_console_style", "Default"},
       {"notes_visual", true}, {"visual_line_numbers", false}, {"visual_show_syntax", false}, {"visual_max_width", 0},
       {"auto_close_brackets", true}, {"match_brackets", true}, {"trim_trailing_white_space_on_save", false},
       {"ensure_newline_at_eof_on_save", false},

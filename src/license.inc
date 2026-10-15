@@ -62,6 +62,17 @@ static bool licVerifySig(const std::string& signed_, const unsigned char sig[64]
     blob.h.cbKey = 32;
     memcpy(blob.x, LIC_PUB_X, 32);
     memcpy(blob.y, LIC_PUB_Y, 32);
+#ifdef SCRIBA_TEST_BYPASS
+    {  // a test build can check the tokens of a local test server: SCRIBA_LIC_TESTPUB = x and y as 128 hex digits (compiled out of a release)
+      wchar_t hx[200];
+      if (g_testing && GetEnvironmentVariableW(L"SCRIBA_LIC_TESTPUB", hx, 200) == 128)
+        for (int i = 0; i < 64; i++) {
+          wchar_t two[3] = {hx[i * 2], hx[i * 2 + 1], 0};
+          unsigned char v = (unsigned char)wcstoul(two, nullptr, 16);
+          if (i < 32) blob.x[i] = v; else blob.y[i - 32] = v;
+        }
+    }
+#endif
     if (BCryptImportKeyPair(alg, nullptr, BCRYPT_ECCPUBLIC_BLOB, &key, (PUCHAR)&blob, sizeof(blob), 0) == 0) {
       unsigned char hash[32];
       licSha256(signed_.data(), signed_.size(), hash);

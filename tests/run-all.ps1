@@ -40,6 +40,7 @@ foreach ($s in $scripts) {
     $py = (Get-Command python -ErrorAction SilentlyContinue).Source
     if (-not $py) { $py = (Get-Command python3).Source }
     $key = (& $py "$ls\manage.py" new --name 'Test User' --machines 1).Trim()
+    $env:SCRIBA_LIC_TESTPUB = (& $py "$ls\manage.py" pubkey --hex).Trim()  # the test server signs with the local test key, not with the key of the real server
     $licServer = Start-Process $py -ArgumentList "`"$ls\app.py`"" -PassThru -WindowStyle Hidden
     Start-Sleep 2
     $text = $text.Replace('%LICKEY%', $key)
