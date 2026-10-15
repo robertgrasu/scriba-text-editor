@@ -2400,7 +2400,7 @@ static LineEdit g_sbFindQ;
 static vector<int> g_sbFindRes;  // indexes into g_projFiles, best match first
 static int g_sbFindSel = 0;
 static float g_sbFindScroll = 0;
-static const float SBF_ROW = 36;
+static const float SBF_ROW = 22;  // the same height as a row of the tree
 static int fuzzy(const wstring& hay, const wstring& q);
 static wstring sbBaseName(const wstring& p) { size_t k = p.find_last_of(L"\\/"); return k == wstring::npos ? p : p.substr(k + 1); }
 static void sbFindUpdate() {
@@ -2593,16 +2593,28 @@ static void drawSidebar() {
     else if (g_sbFindRes.empty()) drawText(L"No file matches.", 16, 14, y0 + 46, sbFg(), g_uiSmall, w - 24, 20);
     float vh = sbFindViewH(), total = g_sbFindRes.size() * SBF_ROW;
     g_sbFindScroll = std::max(0.f, std::min(g_sbFindScroll, std::max(0.f, total - vh)));
+    const wstring& activePath = D().path;
     for (size_t i = 0; i < g_sbFindRes.size(); i++) {
       float y = y0 + 34 + i * SBF_ROW - g_sbFindScroll;
       if (y + SBF_ROW < y0 + 34 || y > top + h) continue;
       const wstring& rel = g_projFiles[g_sbFindRes[i]];
+      const wstring& abs = g_projAbs[g_sbFindRes[i]];
       wstring nm = sbBaseName(rel), dir = rel.size() > nm.size() ? rel.substr(0, rel.size() - nm.size() - 1) : L"";
-      bool hov = g_my >= y && g_my < y + SBF_ROW && g_mx < w;
-      if ((int)i == g_sbFindSel) fillR(rc(6, y, w - 12, SBF_ROW - 2), sbHi(), 1.f, 6);
-      else if (hov) fillR(rc(6, y, w - 12, SBF_ROW - 2), sbHi(), 0.6f, 6);
-      drawText(nm.c_str(), (int)nm.size(), 14, y + 2, t.fg, g_ui, w - 28, 20);
-      if (!dir.empty()) drawText(dir.c_str(), (int)dir.size(), 14, y + 18, mixc(t.sidebar, t.fg, 0.42f), g_uiSmall, w - 28, 16);
+      bool isActive = !activePath.empty() && _wcsicmp(activePath.c_str(), abs.c_str()) == 0;
+      bool hov = g_my >= y && g_my < y + SBF_ROW && g_mx < w && g_my > y0 + 34;
+      // the rows look like the ones of the tree: the same highlight, icon and colours
+      if (isActive || (int)i == g_sbFindSel) fillR(rc(0, y, w - 1, SBF_ROW), sbHi(), 1.f);
+      else if (hov) fillR(rc(0, y, w - 1, SBF_ROW), sbHi(), 0.6f);
+      drawNameIcon(nm, false, false, 10 + 14, y + 2);
+      DWORD col = isActive ? t.fg : sbFg();
+      if (!g_gitStatusMap.empty()) {
+        auto git = g_gitStatusMap.find(lowerPath(abs));
+        if (git != g_gitStatusMap.end()) { char gc = git->second; col = gc == 'M' ? 0xe2c08d : (gc == 'A' || gc == '?') ? 0x73c991 : gc == 'D' ? 0xe0596a : 0x6fb7e8; }
+      }
+      float tx = 10 + 34;
+      drawText(nm.c_str(), (int)nm.size(), tx, y + 2, col, g_ui, w - tx - 8, 20);
+      float nw = textWidth(nm, g_ui);
+      if (!dir.empty() && tx + nw + 14 < w - 20) drawText(dir.c_str(), (int)dir.size(), tx + nw + 10, y + 4, mixc(t.sidebar, t.fg, 0.38f), g_uiSmall, w - tx - nw - 20, 18);
     }
     g_rt->PopAxisAlignedClip();
     return;
