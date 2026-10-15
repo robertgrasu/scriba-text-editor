@@ -13,6 +13,9 @@ if(MSVC)
 endif()
 
 add_executable(Scriba WIN32 src/main.cpp res/scriba.rc)
+# the resource compiler does not report the files it embeds: without this a new icon or picture does not reach the exe
+file(GLOB SCRIBA_RES_FILES res/*.ico res/hud/*.png)
+set_source_files_properties(res/scriba.rc PROPERTIES OBJECT_DEPENDS "${SCRIBA_RES_FILES}")
 target_compile_definitions(Scriba PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
 # the scripted tests run without a license; a build that is given to anybody must be made with -DSCRIBA_TEST_BYPASS=OFF
 option(SCRIBA_TEST_BYPASS "let the scripted tests skip the license" ON)
