@@ -207,7 +207,7 @@ static void licDone(LicResult* r) {
     } else { g_licMsg = L"The answer of the server could not be verified."; g_licMsgErr = true; }
   } else if (r->status == 0) {  // no answer
     if (g_licManual) { g_licMsg = L"Could not reach the license server. The license keeps working until " + licDate(g_lic.exp) + L"."; g_licMsgErr = true; g_licManual = false; }
-    if (r->op == 1) { g_licMsg = L"Could not reach the license server (" + fromUtf8(licServer()) + L")."; g_licMsgErr = true; }
+    if (r->op == 1) { g_licMsg = L"Could not reach the license server. Check the internet connection and try again."; g_licMsgErr = true; }
     // a refresh that does not get an answer changes nothing: the token it has keeps working until it runs out
   } else {  // the server said no: revoked, expired, not activated on this computer ...
     wstring m = isObj ? fromUtf8(j.value("message", "The license was refused.")) : L"The license was refused.";
@@ -291,73 +291,140 @@ static void licActivate() {
   if (k.size() < 8) { g_licMsg = L"Type the license key you received."; g_licMsgErr = true; redraw(); return; }
   licRequest(1, toUtf8(k));
 }
+static void licButton(const D2D1_RECT_F& r, const wchar_t* label, int kind, bool primary, bool busy = false) {
+  const Theme& t = T();
+  bool hv = inRect(r, g_mx, g_my) && !busy;
+  if (primary) fillR(r, t.accent, busy ? 0.55f : (hv ? 1.f : 0.92f), 8);
+  else { fillR(r, t.fg, hv ? 0.12f : 0.05f, 8); strokeR(r, t.border, 1.f, 8); }
+  IDWriteTextFormat* f = uiFont(13.5f, true);
+  float tw = textWidth(label, f);
+  drawText(label, (int)wcslen(label), r.left + (r.right - r.left - tw) / 2, r.top + (r.bottom - r.top - 20) / 2, primary ? 0x15191f : t.fg, f, tw + 8, 22);
+  g_licRects.push_back(r);
+  g_licKind[g_licRects.size() - 1] = kind;
+}
+// centred text links under the card
+static void licLinks(float cx, float y, const wchar_t* a, int ka, const wchar_t* b, int kb) {
+  const Theme& t = T();
+  IDWriteTextFormat* f = uiFont(12.5f);
+  float wa = a ? textWidth(a, f) : 0, wb = b ? textWidth(b, f) : 0, gap = (a && b) ? 28.f : 0.f, x = cx - (wa + gap + wb) / 2;
+  auto one = [&](const wchar_t* l, float w, int kind, bool accent) {
+    D2D1_RECT_F r = rc(x - 6, y - 4, w + 12, 26);
+    bool hv = inRect(r, g_mx, g_my);
+    DWORD col = accent ? t.accent : (hv ? t.fg : t.statusText);
+    drawText(l, (int)wcslen(l), x, y, col, f, w + 6, 20);
+    if (hv) fillRect(x, y + 19, w, 1, col);
+    g_licRects.push_back(r);
+    g_licKind[g_licRects.size() - 1] = kind;
+    x += w + gap;
+  };
+  if (a) one(a, wa, ka, true);
+  if (b) one(b, wb, kb, false);
+}
 static void drawLicense() {
   if (!g_licOpen) return;
   const Theme& t = T();
   g_licRects.clear();
   float W = cw(), H = ch(), top = TITLE_H;
   fillRect(0, top, W, H - top, t.bg);
-  float cwid = std::min(560.f, W - 40), x = (W - cwid) / 2, y = top + std::max(30.f, (H - top - 470) / 2);
+  {  // a soft glow in the colour of the logo at the top
+    D2D1_GRADIENT_STOP gs[2] = {{0.f, Rgb(mixc(t.bg, 0x88c0d0, t.dark ? 0.10f : 0.16f))}, {1.f, Rgb(t.bg)}};
+    ID2D1GradientStopCollection* gc = nullptr;
+    ID2D1LinearGradientBrush* gb = nullptr;
+    if (SUCCEEDED(g_rt->CreateGradientStopCollection(gs, 2, &gc)) && gc && SUCCEEDED(g_rt->CreateLinearGradientBrush(D2D1::LinearGradientBrushProperties(D2D1::Point2F(0, top), D2D1::Point2F(0, top + 340)), gc, &gb)) && gb)
+      g_rt->FillRectangle(D2D1::RectF(0, top, W, std::min(H, top + 340)), gb);
+    if (gb) gb->Release();
+    if (gc) gc->Release();
+  }
   bool ok = g_lic.state == LS_OK;
-  // the name
-  drawText(L"Scriba", 6, x, y, t.accent, uiFont(30.f, true), 300, 40);
-  y += 46;
-  const wchar_t* sub = ok ? L"License" : L"Activate your license to start";
-  drawText(sub, (int)wcslen(sub), x, y, t.fg, uiFont(15.f), cwid, 24);
+  float cwid = std::min(460.f, W - 48), x = (W - cwid) / 2, cx = W / 2;
+  float contentH = ok ? 520.f : 500.f;
+  float y = top + std::max(20.f, (H - top - contentH) / 2);
+  // logo, name and what this page is for
+  drawAppLogo(cx - 32, y, 64);
+  y += 82;
+  { float tw = textWidth(L"Scriba", uiFont(28.f, true)); drawText(L"Scriba", 6, cx - tw / 2, y, t.fg, uiFont(28.f, true), tw + 10, 38); }
+  y += 44;
+  wstring sub = ok ? L"Your license" : g_lic.state == LS_REVOKED ? L"This license is no longer valid on this computer"
+              : g_lic.state == LS_EXPIRED ? L"The license on this computer has expired"
+              : g_lic.state == LS_TAMPER ? L"The license on this computer could not be verified" : L"Activate your license to start";
+  { float tw = textWidth(sub, uiFont(14.f)); drawText(sub.c_str(), (int)sub.size(), cx - tw / 2, y, t.statusText, uiFont(14.f), tw + 10, 22); }
   y += 40;
-  // the card
-  D2D1_RECT_F card = rc(x, y, cwid, ok ? 150 : 98);
-  fillR(card, t.panel, 1.f, 8);
-  strokeR(card, t.border, 1.f, 8);
   if (ok) {
-    wstring l1 = L"Licensed to " + (g_lic.name.empty() ? wstring(L"you") : g_lic.name);
-    drawText(l1.c_str(), (int)l1.size(), x + 20, y + 16, t.fg, uiFont(15.f, true), cwid - 40, 24);
-    wstring l2 = L"Valid on this computer. Checked online, works without a connection until " + licDate(g_lic.exp) + L".";
-    drawWrapped(l2, uiFont(12.5f), x + 20, y + 48, cwid - 40, t.statusText, 1.f, 18.f);
-    if (g_lic.until) { wstring l3 = L"The license itself runs until " + licDate(g_lic.until) + L"."; drawText(l3.c_str(), (int)l3.size(), x + 20, y + 88, t.statusText, uiFont(12.5f), cwid - 40, 20); }
-    wstring id = L"Computer: " + fromUtf8(g_licMachine.substr(0, 12)) + L"\x2026";
-    drawText(id.c_str(), (int)id.size(), x + 20, y + 118, t.gutterFg, uiFont(11.5f, false, true), cwid - 40, 18);
+    // the card of a valid license
+    float ch2 = 220;
+    D2D1_RECT_F card = rc(x, y, cwid, ch2);
+    fillR(card, t.panel, 1.f, 12);
+    strokeR(card, t.border, 1.f, 12);
+    // the check badge, the name and the state
+    float bx = x + 24, by = y + 24;
+    fillR(rc(bx, by, 28, 28), 0x7bc67e, 1.f, 14);
+    g_br->SetColor(Rgb(0x15191f));
+    g_rt->DrawLine(D2D1::Point2F(bx + 8, by + 14.5f), D2D1::Point2F(bx + 12.5f, by + 19), g_br, 2.f);
+    g_rt->DrawLine(D2D1::Point2F(bx + 12.5f, by + 19), D2D1::Point2F(bx + 20, by + 9.5f), g_br, 2.f);
+    wstring who = g_lic.name.empty() ? wstring(L"Licensed") : g_lic.name;
+    drawText(who.c_str(), (int)who.size(), bx + 42, by - 1, t.fg, uiFont(16.f, true), cwid - 170, 24);
+    drawText(L"Valid on this computer", 22, bx + 42, by + 19, t.statusText, uiFont(12.f), cwid - 170, 18);
+    float pw = textWidth(L"Active", uiFont(12.f, true)) + 24;
+    D2D1_RECT_F pill = rc(x + cwid - 24 - pw, by + 3, pw, 24);
+    fillR(pill, 0x7bc67e, 0.16f, 12);
+    drawText(L"Active", 6, pill.left + 12, pill.top + 3, 0x7bc67e, uiFont(12.f, true), pw, 18);
+    // the facts
+    float ry = y + 76;
+    fillRect(x + 24, ry, cwid - 48, 1, t.fg, 0.08f);
+    struct Row { const wchar_t* l; wstring v; bool mono; };
+    Row rows[] = {{L"License valid until", g_lic.until ? licDate(g_lic.until) : wstring(L"No end date"), false},
+                  {L"Works offline until", licDate(g_lic.exp), false},
+                  {L"This computer", fromUtf8(g_licMachine.substr(0, 10)) + L"\x2026", true}};
+    for (auto& r : rows) {
+      ry += 4;
+      drawText(r.l, (int)wcslen(r.l), x + 24, ry + 10, t.statusText, uiFont(12.5f), cwid / 2, 20);
+      IDWriteTextFormat* vf = uiFont(12.5f, false, r.mono);
+      float vw = textWidth(r.v, vf);
+      drawText(r.v.c_str(), (int)r.v.size(), x + cwid - 24 - vw, ry + 10, t.fg, vf, vw + 10, 20);
+      ry += 38;
+      fillRect(x + 24, ry - 4, cwid - 48, 1, t.fg, 0.06f);
+    }
+    y += ch2 + 18;
+    if (!g_licMsg.empty()) {
+      IDWriteTextFormat* mf = uiFont(12.5f);
+      float h2 = wrappedHeight(g_licMsg, mf, cwid, 18.f);
+      drawWrapped(g_licMsg, mf, x, y, cwid, g_licMsgErr ? 0xec7b7b : t.statusText, 1.f, 18.f);
+      y += h2 + 10;
+    }
+    y += 6;
+    float bw = (cwid - 12) / 2;
+    licButton(rc(x, y, bw, 42), g_licBusy ? L"Checking\x2026" : L"Check now", 7, false, g_licBusy);
+    licButton(rc(x + bw + 12, y, bw, 42), L"Close", 5, true);
   } else {
-    wstring l1 = g_lic.state == LS_REVOKED ? L"This license is no longer valid on this computer." : g_lic.state == LS_EXPIRED ? L"The license on this computer has expired." : g_lic.state == LS_TAMPER ? L"The license on this computer could not be verified." : L"Scriba needs a license. Nothing works without one.";
-    drawWrapped(l1, uiFont(13.5f), x + 20, y + 18, cwid - 40, t.fg, 1.f, 20.f);
-    drawText(L"Enter the key you received by email and press Activate.", 54, x + 20, y + 58, t.statusText, uiFont(12.5f), cwid - 40, 20);
-  }
-  y += (ok ? 150 : 98) + 22;
-  // the key
-  if (!ok) {
-    D2D1_RECT_F in = rc(x, y, cwid - 130, 40);
+    // activation: the key and one button
+    float ch2 = 168;
+    D2D1_RECT_F card = rc(x, y, cwid, ch2);
+    fillR(card, t.panel, 1.f, 12);
+    strokeR(card, t.border, 1.f, 12);
+    drawText(L"LICENSE KEY", 11, x + 24, y + 22, t.statusText, uiFont(11.f, true), 200, 16);
+    D2D1_RECT_F in = rc(x + 24, y + 44, cwid - 48, 44);
     drawInput(g_licEdit, in, !g_licBusy, L"SCRB-XXXX-XXXX-XXXX-XXXX");
-    g_licRects.push_back(in); g_licKind[g_licRects.size() - 1] = 1;
-    D2D1_RECT_F ab = rc(x + cwid - 118, y, 118, 40);
-    bool hv = inRect(ab, g_mx, g_my);
-    fillR(ab, t.accent, g_licBusy ? 0.5f : (hv ? 1.f : 0.9f), 6);
-    float tw = textWidth(L"Activate", uiFont(13.5f, true));
-    drawText(L"Activate", 8, ab.left + (118 - tw) / 2, ab.top + 10, 0x1a1a1a, uiFont(13.5f, true), 118, 22);
-    g_licRects.push_back(ab); g_licKind[g_licRects.size() - 1] = 2;
-    y += 56;
+    g_licRects.push_back(in);
+    g_licKind[g_licRects.size() - 1] = 1;
+    licButton(rc(x + 24, y + 102, cwid - 48, 46), g_licBusy ? L"Activating\x2026" : L"Activate", 2, true, g_licBusy);
+    y += ch2 + 16;
+    if (!g_licMsg.empty()) {
+      IDWriteTextFormat* mf = uiFont(12.5f);
+      DWORD mc = g_licMsgErr ? 0xec7b7b : t.fg;
+      g_br->SetColor(Rgb(mc));
+      g_rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(x + 6, y + 9), 3.f, 3.f), g_br);
+      float h2 = wrappedHeight(g_licMsg, mf, cwid - 24, 18.f);
+      drawWrapped(g_licMsg, mf, x + 18, y, cwid - 24, mc, 1.f, 18.f);
+      y += h2 + 12;
+    }
+    y += 4;
+    wstring buy = sStr("license_buy_url");
+    licLinks(cx, y, buy.empty() ? nullptr : L"Buy a license", 3, L"Quit Scriba", 6);
+    const wchar_t* foot = L"Your license is tied to this computer.";
+    IDWriteTextFormat* ff = uiFont(11.5f);
+    float fw = textWidth(foot, ff);
+    drawText(foot, (int)wcslen(foot), cx - fw / 2, H - 36, t.gutterFg, ff, fw + 10, 18);
   }
-  if (!g_licMsg.empty()) {
-    drawWrapped(g_licMsg, uiFont(12.5f), x, y, cwid, g_licMsgErr ? 0xec7b7b : t.fg, 1.f, 18.f);
-    y += wrappedHeight(g_licMsg, uiFont(12.5f), cwid, 18.f) + 14;
-  }
-  // buttons
-  struct B { const wchar_t* l; int kind; bool show; };
-  wstring buy = sStr("license_buy_url");
-  B bs[] = {{L"Buy a license", 3, !buy.empty()}, {L"Check now", 7, ok}, {L"Deactivate this computer", 4, ok}, {L"Close", 5, ok}, {L"Quit Scriba", 6, !ok}};
-  float bx = x;
-  for (auto& b : bs) {
-    if (!b.show) continue;
-    float w = textWidth(b.l, uiFont(12.5f)) + 28;
-    D2D1_RECT_F r = rc(bx, y, w, 32);
-    bool hv = inRect(r, g_mx, g_my);
-    fillR(r, t.fg, hv ? 0.12f : 0.06f, 5);
-    strokeR(r, t.border, 1.f, 5);
-    drawText(b.l, (int)wcslen(b.l), r.left + 14, r.top + 6, t.fg, uiFont(12.5f), w, 20);
-    g_licRects.push_back(r); g_licKind[g_licRects.size() - 1] = b.kind;
-    bx += w + 10;
-  }
-  wstring foot = L"Server: " + fromUtf8(licServer());
-  drawText(foot.c_str(), (int)foot.size(), x, H - 34, t.gutterFg, uiFont(11.f, false, true), cwid, 18);
 }
 static void licMouse(float x, float y, int what) {
   if (what != 0) return;
@@ -367,12 +434,9 @@ static void licMouse(float x, float y, int what) {
       case 1: lineEditClick(g_licEdit, g_licRects[i], x); caretReset(); break;
       case 2: licActivate(); break;
       case 3: ShellExecuteW(g_hwnd, L"open", sStr("license_buy_url").c_str(), nullptr, nullptr, SW_SHOWNORMAL); break;
-      case 4:
-        if (appMsgBox(g_hwnd, L"Deactivate Scriba on this computer? You can activate the license again here or on another computer.", L"License", MB_YESNO | MB_ICONQUESTION) == IDYES) licRequest(3, g_licKey);
-        break;
       case 5: g_licOpen = false; break;
       case 6: PostMessageW(g_hwnd, WM_CLOSE, 0, 0); break;
-      case 7: if (!g_licBusy && !g_licKey.empty()) { g_licManual = true; g_licMsg = L"Checking with the server 26"; g_licMsgErr = false; licRequest(2, g_licKey); } break;
+      case 7: if (!g_licBusy && !g_licKey.empty()) { g_licManual = true; g_licMsg = L"Checking\x2026"; g_licMsgErr = false; licRequest(2, g_licKey); } break;
     }
     redraw();
     return;

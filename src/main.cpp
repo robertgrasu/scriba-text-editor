@@ -3279,6 +3279,31 @@ static bool readAll(const wstring& path, vector<char>& out) {
   out.resize(got);
   return true;
 }
+// the logo (Nib / Polar fade of the Scriba logos): a Polar Night tile and a nib with a vertical fade, drawn on a 16 x 16 grid and scaled to `size` px
+static void drawAppLogo(float lx, float ly, float size) {
+  float lk = size / 16.f;
+  fillR(rc(lx, ly, size, size), 0x2e3440, 1.f, 3.6f * lk);
+  if (ID2D1PathGeometry* pg = nullptr; SUCCEEDED(g_d2d->CreatePathGeometry(&pg)) && pg) {
+    ID2D1GeometrySink* sk = nullptr;
+    pg->Open(&sk);
+    const float px[7] = {8, 11.3f, 8.35f, 8.35f, 7.65f, 7.65f, 4.7f}, py[7] = {2.6f, 7.3f, 12.95f, 8, 8, 12.95f, 7.3f};
+    sk->BeginFigure(D2D1::Point2F(lx + px[0] * lk, ly + py[0] * lk), D2D1_FIGURE_BEGIN_FILLED);
+    for (int i = 1; i < 7; i++) sk->AddLine(D2D1::Point2F(lx + px[i] * lk, ly + py[i] * lk));
+    sk->EndFigure(D2D1_FIGURE_END_CLOSED);
+    sk->Close();
+    sk->Release();
+    D2D1_GRADIENT_STOP gs[3] = {{0.f, Rgb(0x8fbcbb)}, {0.55f, Rgb(0x88c0d0)}, {1.f, Rgb(0x81a1c1)}};
+    ID2D1GradientStopCollection* gc = nullptr;
+    ID2D1LinearGradientBrush* gb = nullptr;
+    if (SUCCEEDED(g_rt->CreateGradientStopCollection(gs, 3, &gc)) && gc && SUCCEEDED(g_rt->CreateLinearGradientBrush(D2D1::LinearGradientBrushProperties(D2D1::Point2F(0, ly + 2.6f * lk), D2D1::Point2F(0, ly + 12.95f * lk)), gc, &gb)) && gb)
+      g_rt->FillGeometry(pg, gb);
+    if (gb) gb->Release();
+    if (gc) gc->Release();
+    pg->Release();
+  }
+  g_br->SetColor(Rgb(0x2e3440));
+  g_rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(lx + 8 * lk, ly + 7.2f * lk), .95f * lk, .95f * lk), g_br);
+}
 #include "settings.inc"
 // minimal reader for the notes meta file: { "id": { "title": "...", "pinned": true, "color": "#rrggbb" }, ... }
 static void parseMeta(const wstring& t) {
@@ -4804,30 +4829,7 @@ static void paint() {
   if (g_uiStyle == 1 && MENU_H > TITLE_H) fillRect(0, MENU_H - 1, W, 1, t.fg, 0.1f);
   {
     // title bar: app icon, title, window buttons (the native frame is removed)
-    // the logo (Nib / Polar fade of the Scriba logos): a Polar Night tile and a nib with a vertical fade, drawn on a 16 x 16 grid
-    // and scaled to LOGO px, like the icons of other editors in their title bars
-    const float LOGO = 18.f, lk = LOGO / 16.f, lx = 8.f, ly = (TITLE_H - LOGO) / 2;
-    fillR(rc(lx, ly, LOGO, LOGO), 0x2e3440, 1.f, 3.6f * lk);
-    if (ID2D1PathGeometry* pg = nullptr; SUCCEEDED(g_d2d->CreatePathGeometry(&pg)) && pg) {
-      ID2D1GeometrySink* sk = nullptr;
-      pg->Open(&sk);
-      const float px[7] = {8, 11.3f, 8.35f, 8.35f, 7.65f, 7.65f, 4.7f}, py[7] = {2.6f, 7.3f, 12.95f, 8, 8, 12.95f, 7.3f};
-      sk->BeginFigure(D2D1::Point2F(lx + px[0] * lk, ly + py[0] * lk), D2D1_FIGURE_BEGIN_FILLED);
-      for (int i = 1; i < 7; i++) sk->AddLine(D2D1::Point2F(lx + px[i] * lk, ly + py[i] * lk));
-      sk->EndFigure(D2D1_FIGURE_END_CLOSED);
-      sk->Close();
-      sk->Release();
-      D2D1_GRADIENT_STOP gs[3] = {{0.f, Rgb(0x8fbcbb)}, {0.55f, Rgb(0x88c0d0)}, {1.f, Rgb(0x81a1c1)}};
-      ID2D1GradientStopCollection* gc = nullptr;
-      ID2D1LinearGradientBrush* gb = nullptr;
-      if (SUCCEEDED(g_rt->CreateGradientStopCollection(gs, 3, &gc)) && gc && SUCCEEDED(g_rt->CreateLinearGradientBrush(D2D1::LinearGradientBrushProperties(D2D1::Point2F(0, ly + 2.6f * lk), D2D1::Point2F(0, ly + 12.95f * lk)), gc, &gb)) && gb)
-        g_rt->FillGeometry(pg, gb);
-      if (gb) gb->Release();
-      if (gc) gc->Release();
-      pg->Release();
-    }
-    g_br->SetColor(Rgb(0x2e3440));
-    g_rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(lx + 8 * lk, ly + 7.2f * lk), .95f * lk, .95f * lk), g_br);
+    drawAppLogo(8.f, (TITLE_H - 18.f) / 2, 18.f);  // the logo, like the icons of other editors in their title bars
     wstring ttl = d.name;
     if (g_root && !d.isNote) ttl += L" (" + g_root->name + L")";
     ttl += L" - Scriba";

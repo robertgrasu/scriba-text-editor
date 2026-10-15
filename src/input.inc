@@ -262,6 +262,7 @@ static void testTick() {
     else if (op == L"amxpick") g_testAmxPick = arg;
     else if (op == L"licstate") testLog(L"lic: state=" + std::to_wstring(g_lic.state) + L" locked=" + std::to_wstring(licLocked() ? 1 : 0));
     else if (op == L"tsall") { for (size_t i = 0; i < sizeof(TS_LANGS) / sizeof(TS_LANGS[0]); i++) tsLoad((int)i); testLog(L"ts: " + (g_tsLog.empty() ? wstring(L"all queries loaded") : g_tsLog)); }
+    else if (op == L"licfake") { g_lic.state = LS_OK; g_lic.name = L"Robert Grasu"; g_lic.exp = licNow() + 7 * 86400; g_lic.until = licNow() + 365 * 86400; g_licMachine = "0123456789abcdef"; g_licMsg = L"Checked with the server: the license is valid."; g_licOpen = true; }  // licfake: shows the page of a valid license
     else if (op == L"crash") {  // crash av|terminate|abort|stack: to see the report that is written
       if (arg == L"av") *(volatile int*)nullptr = 1;
       else if (arg == L"terminate") { try { throw std::runtime_error("test exception"); } catch (...) { std::terminate(); } }
