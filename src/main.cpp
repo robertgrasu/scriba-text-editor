@@ -2403,18 +2403,40 @@ static float g_sbFindScroll = 0;
 static const float SBF_ROW = 22;  // the same height as a row of the tree
 static int fuzzy(const wstring& hay, const wstring& q);
 static wstring sbBaseName(const wstring& p) { size_t k = p.find_last_of(L"\\/"); return k == wstring::npos ? p : p.substr(k + 1); }
+static wstring sbLower(wstring s) { for (auto& c : s) c = (wchar_t)towlower(c); return s; }
+// what is typed has to be in the name or the path, as written (several words: all of them); letters spread over the name only count when nothing contains the text
 static void sbFindUpdate() {
   g_sbFindRes.clear();
   g_sbFindSel = 0;
   g_sbFindScroll = 0;
-  if (g_sbFindQ.t.empty()) return;
+  wstring q = trimW(g_sbFindQ.t);
+  if (q.empty()) return;
   if (!g_projScanned) scanProject();
+  vector<wstring> words;
+  for (size_t p = 0; p < q.size();) {
+    size_t e = q.find(L' ', p);
+    if (e == wstring::npos) e = q.size();
+    if (e > p) words.push_back(sbLower(q.substr(p, e - p)));
+    p = e + 1;
+  }
   vector<std::pair<int, int>> sc;
   for (size_t i = 0; i < g_projFiles.size(); i++) {
-    int s = fuzzy(sbBaseName(g_projFiles[i]), g_sbFindQ.t);
-    if (s >= 0) s += 200;  // a match in the file name beats one spread over the path
-    else { s = fuzzy(g_projFiles[i], g_sbFindQ.t); if (s < 0) continue; }
-    sc.push_back({s, (int)i});
+    wstring nm = sbLower(sbBaseName(g_projFiles[i])), path = sbLower(g_projFiles[i]);
+    int score = 0;
+    bool all = true;
+    for (auto& w : words) {
+      size_t pn = nm.find(w);
+      if (pn != wstring::npos) score += 300 - (int)std::min<size_t>(pn, 60) * 2 + (pn == 0 ? 100 : 0) - (int)(nm.size() - w.size()) / 4;
+      else if (path.find(w) != wstring::npos) score += 100;
+      else { all = false; break; }
+    }
+    if (all) sc.push_back({score, (int)i});
+  }
+  if (sc.empty()) {  // nothing contains it: the nearest file names, letters in order
+    for (size_t i = 0; i < g_projFiles.size(); i++) {
+      int f = fuzzy(sbBaseName(g_projFiles[i]), q);
+      if (f >= 0) sc.push_back({f, (int)i});
+    }
   }
   std::stable_sort(sc.begin(), sc.end(), [](const std::pair<int, int>& a, const std::pair<int, int>& b) { return a.first > b.first; });
   for (size_t i = 0; i < sc.size() && i < 300; i++) g_sbFindRes.push_back(sc[i].second);
