@@ -4,3 +4,6 @@ x/
 *.pdb
 *.map
 dist/
+license_server/
+TODO.md
+Scriba-logos/

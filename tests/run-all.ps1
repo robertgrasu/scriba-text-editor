@@ -29,6 +29,7 @@ $failed = 0
 $scripts = Get-ChildItem "$tests\s*.txt" | Sort-Object { [int]($_.BaseName -replace '\D', '') }
 foreach ($s in $scripts) {
   if ($Only.Count -and $s.BaseName -notin $Only) { continue }
+  if ($s.BaseName -eq 's47' -and -not (Test-Path "$PSScriptRoot\..\license_server\app.py")) { Write-Host "s47   skipped (needs the license server, which is not part of this repository)"; continue }
   Reset-Fixtures $s.BaseName
   $script = "$Out\$($s.BaseName).script"
   $text = [IO.File]::ReadAllText($s.FullName, [Text.Encoding]::UTF8).Replace('%TESTS%', $tests)

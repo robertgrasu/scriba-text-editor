@@ -1,8 +1,7 @@
 SCRIBA
 ======
 
-A text editor for Windows in the style of Sublime Text, written natively in C++ (Win32 and Direct2D, no browser engine),
-with support for AMX Mod X (Pawn).
+A text editor for Windows, written natively in C++ (Win32 and Direct2D, no browser engine).
 
 There is no installer: run Scriba.exe from any folder. It does not need administrator rights.
 This build has no license check and does not connect to any license server.
@@ -21,7 +20,6 @@ This build has no license check and does not connect to any license server.
    - File > Open Folder: the side bar with the files; the magnifier next to FOLDERS searches by file name.
    - Ctrl+Shift+F: search in all files.
    - Preferences > Settings > Appearance: colour schemes and interface styles.
-   - The AMX Mod X menu: compile (F7), functions list, includes tree, HUD Editor, AMXX Uncompress.
    - Notes: quick notes in Markdown, with a formatted (visual) mode.
 
 4. IF SOMETHING GOES WRONG

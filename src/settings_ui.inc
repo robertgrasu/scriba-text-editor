@@ -22,7 +22,7 @@ static void suInitSpec() {
   g_suSpec = {
       {L"Appearance", {
           {"color_scheme", L"Color scheme", L"Syntax colours and window theme.", SU_SELECT, schemes},
-          {"ui_style", L"Interface style", L"Classic is Sublime Text. Refined keeps its layout but flatter and cleaner. Modern uses floating cards and pill tabs. Zen hides the clutter: press Alt for the menu.", SU_SELECT, {L"Classic", L"Refined", L"Modern", L"Zen"}},
+          {"ui_style", L"Interface style", L"Classic is the default look. Refined keeps its layout but flatter and cleaner. Modern uses floating cards and pill tabs. Zen hides the clutter: press Alt for the menu.", SU_SELECT, {L"Classic", L"Refined", L"Modern", L"Zen"}},
           {"accent_color", L"Accent colour", L"Cursor, highlights and bookmarks. Reset to use the colour of the scheme.", SU_COLOR, {}},
           {"font_face", L"Font", L"Editor font family. Any installed monospace font works.", SU_TEXT, {L"Consolas", L"Cascadia Mono", L"Cascadia Code", L"Courier New", L"Lucida Console", L"Fira Code", L"JetBrains Mono", L"Source Code Pro", L"Menlo", L"Monaco"}, 0, 0, L"", true},
           {"font_size", L"Font size", L"In pixels. Ctrl+= / Ctrl+- change it temporarily for one window.", SU_NUM, {}, 7, 48},

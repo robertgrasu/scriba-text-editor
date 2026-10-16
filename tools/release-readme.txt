@@ -1,7 +1,7 @@
 SCRIBA - versiune de test
 =========================
 
-Un editor de text pentru Windows, in stilul Sublime Text, cu suport pentru AMX Mod X (Pawn).
+Un editor de text pentru Windows.
 Nu are instalare: rulezi Scriba.exe din orice folder. Nu cere drepturi de administrator.
 
 1. PORNIRE
@@ -25,7 +25,6 @@ Nu are instalare: rulezi Scriba.exe din orice folder. Nu cere drepturi de admini
    - File > Open Folder : bara laterala cu fisiere; lupa de langa FOLDERS cauta dupa numele fisierului
    - Ctrl+Shift+F : cauta in toate fisierele
    - Preferences > Settings > Appearance : teme de culori
-   - Meniul AMX Mod X : compilare (F7), lista de functii, HUD Editor, AMXX Uncompress
    - Notes : note rapide, cu Markdown
 
 5. DACA CEVA NU MERGE
