@@ -1,7 +1,7 @@
 SCRIBA
 ======
 
-A text editor for Windows, written natively in C++ (Win32 and Direct2D, no browser engine).
+A fast, lightweight text editor for Windows, built natively in C++.
 
 There is no installer: run Scriba.exe from any folder. It does not need administrator rights.
 This build has no license check and does not connect to any license server.

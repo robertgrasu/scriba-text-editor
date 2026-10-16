@@ -5,8 +5,8 @@
 <h1 align="center">Scriba</h1>
 
 <p align="center">
-  A fast, native text editor for Windows.<br>
-  Written in C++ with Win32 and Direct2D: no browser engine, no runtime to install.
+  A fast, lightweight text editor for Windows.<br>
+  Built natively in C++: one small program, no installer, nothing else to install.
 </p>
 
 <p align="center">
@@ -39,11 +39,15 @@
 <table>
   <tr>
     <td width="50%"><img src="docs/screenshots/notes.png" alt="Notes in Markdown, shown formatted, with tags, colours and pins"><br><sub><b>Notes</b>: Markdown that is shown formatted as you write it; to-do lists, tables, code blocks, tags and colours.</sub></td>
-    <td width="50%"><img src="docs/screenshots/palette.png" alt="The command palette"><br><sub><b>Command palette</b>: every command by name, with its key binding.</sub></td>
+    <td width="50%"><img src="docs/screenshots/claude.png" alt="The Claude Code panel next to a source file"><br><sub><b>Claude Code</b>: a chat panel next to your file. Every change shows up as a card with Diff and Revert.</sub></td>
   </tr>
   <tr>
+    <td width="50%"><img src="docs/screenshots/palette.png" alt="The command palette"><br><sub><b>Command palette</b>: every command by name, with its key binding.</sub></td>
     <td width="50%"><img src="docs/screenshots/split.png" alt="Two files side by side"><br><sub><b>Split view</b>: two groups with their own tabs and minimap, side by side or stacked.</sub></td>
+  </tr>
+  <tr>
     <td width="50%"><img src="docs/screenshots/settings.png" alt="The settings page"><br><sub><b>Settings</b>: a page with search, backed by a plain JSON file.</sub></td>
+    <td width="50%"><img src="docs/screenshots/light.png" alt="A light colour scheme"><br><sub><b>Colour schemes</b>: 38 of them, dark and light, applied to the whole window.</sub></td>
   </tr>
 </table>
 
