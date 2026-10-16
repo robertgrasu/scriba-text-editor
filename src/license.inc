@@ -250,6 +250,10 @@ static void licRecheck() {
 }
 static void licOpen() { g_licOpen = true; g_licEdit.set(L""); if (g_lic.state == LS_OK) g_licMsg.clear(); caretReset(); redraw(); }
 static void licInit() {
+#ifdef SCRIBA_FREE
+  g_licBypass = true;  // the free build: nothing is checked, nothing is sent anywhere
+  return;
+#endif
   g_licMachine = licMachineId();
   wchar_t v[8];
 #ifdef SCRIBA_TEST_BYPASS

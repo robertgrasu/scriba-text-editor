@@ -812,6 +812,9 @@ static bool g_distFree = false, g_statusOn = true;
 static bool cmdAvailable(int cmd) {
   switch (cmd) {
     // not written yet: shown dimmed in the menus and left out of the command palette
+#ifdef SCRIBA_FREE
+    case C_LICENSE: return false;  // the free build has no license
+#endif
 
   }
   return true;

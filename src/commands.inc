@@ -439,6 +439,9 @@ static void buildMenus() {
     m.label = d.name;
     for (const char* id : d.ids) {
       if (id[0] == '-') { m.items.push_back({L"", 0}); continue; }
+#ifdef SCRIBA_FREE
+      if (!strcmp(id, "license")) continue;
+#endif
       const CmdDef* c = cmdById(id);
       if (c) m.items.push_back({cmdLabel(c->cmd), c->cmd});
     }
